@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">My Application</string>
+    <string name="location_permission_reason">
+        We need access to your device\'s precise location in order to provide you with public transport information near you.\nWhen the dialog appears, tap \'Precise\'.
+    </string>
+    <string name="search_bar_text">Where to?</string>
+    <string name="appwidget_text">EXAMPLE</string>
+    <string name="add_widget">Add widget</string>
+    <string name="app_widget_description">This is an app widget description</string>
+</resources>
