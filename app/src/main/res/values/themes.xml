@@ -12,4 +12,20 @@
     <style name="SearchField" parent="Widget.Material3.TextInputLayout.OutlinedBox">
         <item name="cornerSize">28dp</item>
     </style>
+
+    <style name="Theme.BottomSheet" parent="Widget.Material3.BottomSheet">
+        <item name="shapeAppearanceOverlay">@style/Theme.BottomSheet.ShapeAppearanceOverlay</item>
+<!--        <item name="cornerSize">28dp</item>-->
+<!--        <item name="marginLeftSystemWindowInsets">false</item>-->
+<!--        <item name="marginRightSystemWindowInsets">false</item>-->
+<!--        <item name="paddingBottomSystemWindowInsets">false</item>-->
+<!--        <item name="paddingTopSystemWindowInsets">false</item>-->
+<!--        <item name="paddingLeftSystemWindowInsets">false</item>-->
+<!--        <item name="paddingRightSystemWindowInsets">false</item>-->
+    </style>
+
+    <style name="Theme.BottomSheet.ShapeAppearanceOverlay" parent="ShapeAppearanceOverlay.Material3.Corner.Top">
+        <item name="cornerSizeBottomLeft">28dp</item>
+        <item name="cornerSizeBottomRight">28dp</item>
+    </style>
 </resources>

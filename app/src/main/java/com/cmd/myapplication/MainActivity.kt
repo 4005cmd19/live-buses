@@ -2,8 +2,6 @@ package com.cmd.myapplication
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Activity
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Looper
 import android.util.Log
@@ -11,25 +9,19 @@ import android.view.View
 import android.view.ViewGroup.MarginLayoutParams
 import android.view.ViewTreeObserver
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker.PERMISSION_GRANTED
-import androidx.core.content.PermissionChecker.PermissionResult
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
-import androidx.fragment.app.FragmentContainerView
-import androidx.fragment.app.FragmentManager
 import com.cmd.myapplication.data.viewModels.DeviceLocationViewModel
 import com.cmd.myapplication.databinding.ActivityMainBinding
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
-import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 
 class MainActivity : AppCompatActivity() {
@@ -54,6 +46,7 @@ class MainActivity : AppCompatActivity() {
         val view = binding.root
         setContentView(view)
 
+        // TODO remove this, make sure its not needed first lmao
         ViewCompat.setOnApplyWindowInsetsListener(view) { view, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
 
@@ -72,6 +65,17 @@ class MainActivity : AppCompatActivity() {
             object : ViewTreeObserver.OnPreDrawListener {
                 override fun onPreDraw(): Boolean {
                     if (hasPermissions()) {
+                        val fragment =
+                            supportFragmentManager.findFragmentById(R.id.fragment_container)
+
+                        if (fragment is NeedsPermissionsFragment) {
+                            Log.e(TAG, "needP")
+                        }
+                        if (fragment is MainFragment) {
+                            Log.e(TAG, "mainFrag")
+                        }
+
+
                         showMainFragment()
                     } else {
                         // permission not granted
@@ -84,9 +88,15 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun hasPermissions (): Boolean {
-        return (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PERMISSION_GRANTED)
-                && (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PERMISSION_GRANTED)
+    private fun hasPermissions(): Boolean {
+        return (ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PERMISSION_GRANTED)
+                && (ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PERMISSION_GRANTED)
     }
 
     override fun onRequestPermissionsResult(
@@ -110,7 +120,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showMainFragment () {
+    private fun showMainFragment() {
         val mainFragment = MainFragment()
 
         supportFragmentManager.beginTransaction()

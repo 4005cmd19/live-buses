@@ -1,5 +1,7 @@
 package com.cmd.myapplication.data.repositories
 
+import com.google.gson.Gson
+import com.google.gson.JsonElement
 import com.hivemq.client.mqtt.MqttClient
 import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt3.Mqtt3BlockingClient
@@ -7,6 +9,7 @@ import java.util.UUID
 
 class RemoteDataSource {
     private val retainList = arrayListOf<RetainedObject>()
+    private val loopBackList = ArrayList<LoopBackObject>()
 
     private val client: Mqtt3BlockingClient = MqttClient.builder()
         .useMqttVersion3()
@@ -25,31 +28,53 @@ class RemoteDataSource {
             .send()
     }
 
-    fun listenTo(topic: String, callback: (topic: String, payload: String) -> Unit) {
+    fun init() {
+
+    }
+
+    fun listenTo(topic: String, callback: (topic: String, payload: ByteArray) -> Unit) {
         client.toAsync()
             .subscribeWith()
             .topicFilter(topic)
             .qos(MqttQos.AT_MOST_ONCE)
             .callback {
-                if (it.isRetain) {
-                    retainList.add(RetainedObject(
-                        it.topic.toString(),
-                        it.payload.toString()
-                    ))
-
-                    callback(it.topic.toString(), it.payload.toString())
-                }
+                loopBackList.add(LoopBackObject(topic, it.payload.toString().toByteArray()))
+                callback(it.topic.toString(), it.payload.toString().toByteArray())
             }
             .send()
     }
 
-    fun stopListeningTo (topic: String) {
+    fun stopListeningTo(topic: String) {
         client.unsubscribeWith()
             .topicFilter(topic)
             .send()
     }
 
-    fun request (topic: String, payload: ByteArray, retain: Boolean = true, qos: MqttQos = MqttQos.AT_MOST_ONCE) {
+    fun loopBack(topic: String) {
+        val payload = loopBackList.find { it.topic == topic }
+
+        if (payload == null) {
+            val p = Gson().toJson(RequestObject()).toByteArray()
+            request(topic, p)
+        } else {
+            val p = Gson().let {
+                it.fromJson(payload.toString(), JsonElement::class.java).asJsonObject.apply {
+                    remove("isSatisfied")
+                    addProperty("isSatisfied", false)
+                }.toString()
+                    .toByteArray()
+            }
+
+            request(topic, p)
+        }
+    }
+
+    fun request(
+        topic: String,
+        payload: ByteArray,
+        retain: Boolean = true,
+        qos: MqttQos = MqttQos.AT_MOST_ONCE,
+    ) {
         client.publishWith()
             .topic(topic)
             .payload(payload)
@@ -58,11 +83,11 @@ class RemoteDataSource {
             .send()
     }
 
-    fun clearRequest (topic: String) {
+    fun clearRequest(topic: String) {
         request(topic, ByteArray(0))
     }
 
-    class RetainedObject (
+    class RetainedObject(
         var topic: String,
         var message: String,
     )
@@ -73,4 +98,15 @@ class RemoteDataSource {
         const val APP_ID = "mqtt-4005-main"
         val APP_KEY = "MQTT-4005-connect".toByteArray()
     }
+}
+
+open class RequestObject(
+    val isSatisfied: Boolean = false,
+)
+
+data class LoopBackObject(
+    val topic: String,
+    val payload: ByteArray,
+) {
+
 }

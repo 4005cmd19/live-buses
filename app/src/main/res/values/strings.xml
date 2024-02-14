@@ -7,4 +7,6 @@
     <string name="appwidget_text">EXAMPLE</string>
     <string name="add_widget">Add widget</string>
     <string name="app_widget_description">This is an app widget description</string>
+    <string name="bottom_sheet_heading">Nearby buses</string>
+    <string name="location_permission_title">Grant permissions</string>
 </resources>

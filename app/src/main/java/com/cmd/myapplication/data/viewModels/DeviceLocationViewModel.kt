@@ -9,16 +9,17 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.cmd.myapplication.App
 import com.cmd.myapplication.data.repositories.DeviceLocationRepository
+import com.cmd.myapplication.data.repositories.LocationData
 
 class DeviceLocationViewModel(
     private val repository: DeviceLocationRepository,
 ) : ViewModel() {
 
-    private val _currentLocation: MutableLiveData<DeviceLocationRepository.LocationData?> =
+    private val _currentLocation: MutableLiveData<LocationData?> =
         MutableLiveData(null)
-    private lateinit var observer: Observer<DeviceLocationRepository.LocationData?>
+    private lateinit var observer: Observer<LocationData?>
 
-    var currentLocation: DeviceLocationRepository.LocationData? = _currentLocation.value
+    var currentLocation: LocationData? = _currentLocation.value
         private set
 
     init {
@@ -40,13 +41,13 @@ class DeviceLocationViewModel(
         }
     }
 
-    fun requestLocation (callback: (location: DeviceLocationRepository.LocationData?) -> Unit) {
+    fun requestLocation (callback: (location: LocationData?) -> Unit) {
         val location = repository.requestCurrentLocation(callback)
     }
 
     fun observe(
         lifecycleOwner: LifecycleOwner,
-        callback: (location: DeviceLocationRepository.LocationData?) -> Unit,
+        callback: (location: LocationData?) -> Unit,
     ) {
         Log.e(TAG, "observe")
         if (!::observer.isInitialized) {
@@ -68,7 +69,7 @@ class DeviceLocationViewModel(
         _currentLocation.removeObserver(observer)
     }
 
-    private fun updateLocation(location: DeviceLocationRepository.LocationData) {
+    private fun updateLocation(location: LocationData) {
         _currentLocation.value = location
     }
 

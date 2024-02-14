@@ -21,6 +21,12 @@ android {
         vectorDrawables {
             useSupportLibrary true
         }
+
+        // local.properties
+
+        def properties = new Properties()
+        properties.load(project.rootProject.file("local.properties").newDataInputStream())
+        resValue "string", "GOOGLE_MAPS_API_KEY", properties.getProperty("GOOGLE_MAPS_API_KEY", "")
     }
 
     buildTypes {
@@ -57,6 +63,9 @@ dependencies {
     implementation 'androidx.fragment:fragment-ktx:1.6.2'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
+
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1'
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1"
 
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'com.google.android.gms:play-services-location:21.1.0'

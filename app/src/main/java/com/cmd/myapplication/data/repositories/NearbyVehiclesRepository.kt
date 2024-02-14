@@ -1,22 +1,6 @@
 package com.cmd.myapplication.data.repositories
 
 import android.annotation.SuppressLint
-import android.app.Application
-import android.location.Location
-import android.os.Looper
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
-import com.cmd.myapplication.data.repositories.DeviceLocationRepository.LocationData
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
-import com.google.android.gms.tasks.CancellationToken
-import com.google.android.gms.tasks.OnTokenCanceledListener
-import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 
 @SuppressLint("MissingPermission")
@@ -27,6 +11,10 @@ class NearbyVehiclesRepository(
         val request = Topic.buildStopsRequest(location)
 
         remoteDataSource.request(Topic.STOPS, request)
+    }
+
+    private fun buildTopic () {
+
     }
 
     object Topic {
@@ -56,3 +44,4 @@ class NearbyVehiclesRepository(
         }
     }
 }
+

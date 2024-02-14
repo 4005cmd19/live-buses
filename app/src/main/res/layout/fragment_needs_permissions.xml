@@ -26,6 +26,15 @@
             android:src="@drawable/ic_location" />
 
         <TextView
+            android:id="@+id/title_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:textAlignment="center"
+            android:text="@string/location_permission_title"
+            style="@style/TextAppearance.Material3.HeadlineSmall"/>
+
+        <TextView
             android:id="@+id/description_view"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

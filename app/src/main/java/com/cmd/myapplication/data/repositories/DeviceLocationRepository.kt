@@ -86,19 +86,19 @@ class DeviceLocationRepository(application: Application) {
         }
     }
 
-    data class LocationData(
-        val latitude: Double,
-        val longitude: Double,
-    )
-
-    fun Location.toData(): LocationData {
-        return LocationData(
-            this.latitude,
-            this.longitude
-        )
-    }
-
     companion object {
         const val TAG = "LocationRepository"
     }
+}
+
+data class LocationData(
+    val latitude: Double,
+    val longitude: Double,
+)
+
+fun Location.toData(): LocationData {
+    return LocationData(
+        this.latitude,
+        this.longitude
+    )
 }
