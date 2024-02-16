@@ -1,6 +1,7 @@
 package com.cmd.myapplication.data.repositories
 
 import android.annotation.SuppressLint
+import com.cmd.myapplication.data.BusLineRoutes
 import com.google.gson.Gson
 
 /*
@@ -14,58 +15,20 @@ buses/nearby/
 @SuppressLint("MissingPermission")
 class BusRoutesRepository(
     private val remoteDataSource: RemoteDataSource
-) {
-    fun requestBusRoutes (stopId: String, callback: (busRoutes: BusRoutesRequestObject) -> Unit) {
-        val topic = buildTopic(stopId)
+): Repository<BusLineRoutes>() {
+    override fun request(lineIds: Array<String>, callback: (lineId: String, routes: BusLineRoutes) -> Unit) {
+        for (lineId in lineIds) {
+            remoteDataSource.listenTo("${BusLinesRepository.TOPIC}$lineId/routes") { _, payload ->
+                val routes = Gson().fromJson(payload.toString(), BusLineRoutes::class.java)
 
-        remoteDataSource.listenTo(topic) { topic, payload ->
-            val busRoutes = Gson().fromJson(
-                payload.toString(),
-                BusRoutesRequestObject::class.java
-            )
-
-            if (busRoutes.isSatisfied) {
-                remoteDataSource.stopListeningTo(topic)
+                callback(lineId, routes)
             }
-
-            callback(busRoutes)
         }
     }
 
-    fun buildTopic (stopId: String): String {
-        return TOPIC + stopId
-    }
+    override fun requestAll(callback: (id: String, BusLineRoutes) -> Unit) = request(arrayOf("+"), callback)
 
-    companion object {
-        const val TOPIC = "api/routes/"
-    }
+    override fun ignore(lineIds: Array<String>) = lineIds.forEach { remoteDataSource.stopListeningTo(it) }
+
+    override fun ignoreAll() = ignore(arrayOf("+"))
 }
-
-data class BusRoutesRequestObject (
-    val routes: Array<BusRouteObject>
-): RequestObject()
-
-data class BusRouteObject (
-    val lineId: Int,
-    val lineName: String,
-    val id: String,
-    val routePoints: Array<LocationData>
-)
-
-
-
-data class BusRoutePoints (
-    val snappedPoints: Array<SnappedPoint>?,
-    val warningMessage: String?
-)
-
-data class SnappedPoint (
-    val location: LatitudeLongitudeLiteral,
-    val placeId: String,
-    val originalIndex: Int?
-)
-
-data class LatitudeLongitudeLiteral (
-    val latitude: Double,
-    val longitude: Double
-)

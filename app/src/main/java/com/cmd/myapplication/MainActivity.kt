@@ -16,6 +16,8 @@ import androidx.core.content.PermissionChecker.PERMISSION_GRANTED
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
+import com.cmd.myapplication.data.Locality
+import com.cmd.myapplication.data.repositories.test.Api
 import com.cmd.myapplication.data.viewModels.DeviceLocationViewModel
 import com.cmd.myapplication.databinding.ActivityMainBinding
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -23,6 +25,10 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -45,6 +51,12 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
+
+        GlobalScope.launch {
+            withContext(Dispatchers.IO) {
+                Api.getStopsIn(Locality.COVENTRY)
+            }
+        }
 
         // TODO remove this, make sure its not needed first lmao
         ViewCompat.setOnApplyWindowInsetsListener(view) { view, windowInsets ->
