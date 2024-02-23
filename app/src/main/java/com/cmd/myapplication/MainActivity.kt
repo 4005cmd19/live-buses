@@ -6,29 +6,24 @@ import android.os.Bundle
 import android.os.Looper
 import android.util.Log
 import android.view.View
-import android.view.ViewGroup.MarginLayoutParams
 import android.view.ViewTreeObserver
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker.PERMISSION_GRANTED
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updateLayoutParams
-import com.cmd.myapplication.data.Locality
-import com.cmd.myapplication.data.repositories.test.Api
+import androidx.navigation.NavController
+import androidx.navigation.fragment.NavHostFragment
+import com.cmd.myapplication.data.viewModels.BusLinesViewModel
+import com.cmd.myapplication.data.viewModels.BusStopsViewModel
 import com.cmd.myapplication.data.viewModels.DeviceLocationViewModel
+import com.cmd.myapplication.data.viewModels.NearbyBusesViewModel
 import com.cmd.myapplication.databinding.ActivityMainBinding
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -38,8 +33,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     val deviceLocationViewModel: DeviceLocationViewModel by viewModels { DeviceLocationViewModel.Factory }
+    val busStopsViewModel: BusStopsViewModel by viewModels { BusStopsViewModel.Factory }
+    val busLinesViewModel: BusLinesViewModel by viewModels { BusLinesViewModel.Factory }
+    val nearbyBusesViewModel: NearbyBusesViewModel by viewModels { NearbyBusesViewModel.Factory }
 
     private lateinit var binding: ActivityMainBinding
+    private lateinit var navController: NavController
 
     private lateinit var locationClient: FusedLocationProviderClient
 
@@ -52,24 +51,12 @@ class MainActivity : AppCompatActivity() {
         val view = binding.root
         setContentView(view)
 
-        GlobalScope.launch {
-            withContext(Dispatchers.IO) {
-                Api.getStopsIn(Locality.COVENTRY)
-            }
-        }
+        navController = NavHostFragment.findNavController(
+            supportFragmentManager.findFragmentById(R.id.fragment_container)!!
+        )
 
-        // TODO remove this, make sure its not needed first lmao
-        ViewCompat.setOnApplyWindowInsetsListener(view) { view, windowInsets ->
-            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-
-            view.updateLayoutParams<MarginLayoutParams> {
-//                leftMargin = insets.left
-//                topMargin = insets.top
-//                bottomMargin = insets.bottom
-//                rightMargin = insets.right
-            }
-
-            return@setOnApplyWindowInsetsListener WindowInsetsCompat(windowInsets)//WindowInsetsCompat.CONSUMED
+        if (hasPermissions()) {
+            navigateToMainFragment()
         }
 
         val content: View = findViewById(android.R.id.content)
@@ -77,27 +64,29 @@ class MainActivity : AppCompatActivity() {
             object : ViewTreeObserver.OnPreDrawListener {
                 override fun onPreDraw(): Boolean {
                     if (hasPermissions()) {
-                        val fragment =
-                            supportFragmentManager.findFragmentById(R.id.fragment_container)
+                        val currentFragmentId = navController.currentDestination?.id
 
-                        if (fragment is NeedsPermissionsFragment) {
-                            Log.e(TAG, "needP")
+                        if (currentFragmentId == R.id.mainFragment) {
+                            content.viewTreeObserver.removeOnPreDrawListener(this)
+                            return true
                         }
-                        if (fragment is MainFragment) {
-                            Log.e(TAG, "mainFrag")
-                        }
-
-
-                        showMainFragment()
                     } else {
-                        // permission not granted
+                        content.viewTreeObserver.removeOnPreDrawListener(this)
+                        return true
                     }
 
-                    content.viewTreeObserver.removeOnPreDrawListener(this)
-                    return true
+                    return false
                 }
             }
         )
+
+        deviceLocationViewModel.currentLocation.observe(this) {
+            nearbyBusesViewModel.location = it
+        }
+
+        busStopsViewModel.busStops.observe(this) {
+            nearbyBusesViewModel.busStops = it
+        }
     }
 
     private fun hasPermissions(): Boolean {
@@ -127,11 +116,16 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == PERMISSION_REQUEST_CODE) {
             if (grantResults.all { it == PERMISSION_GRANTED }) {
                 // has all permissions, swap fragments
-                showMainFragment()
+                navigateToMainFragment()
             }
         }
     }
 
+    private fun navigateToMainFragment() {
+        navController.navigate(NeedsPermissionsFragmentDirections.actionNeedsPermissionsFragmentToMainFragment())
+    }
+
+    @Deprecated("Use nav controller")
     private fun showMainFragment() {
         val mainFragment = MainFragment()
 

@@ -5,6 +5,7 @@ import android.app.Application
 import android.location.Location
 import android.os.Looper
 import android.util.Log
+import com.cmd.myapplication.data.LatLngPoint
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.Granularity
 import com.google.android.gms.location.LastLocationRequest
@@ -28,7 +29,7 @@ class DeviceLocationRepository(application: Application) {
         locationClient = LocationServices.getFusedLocationProviderClient(application)
     }
 
-    fun requestCurrentLocation (callback: (location: LocationData?) -> Unit) {
+    fun requestCurrentLocation (callback: (location: LatLngPoint?) -> Unit) {
         val locationRequest = LastLocationRequest.Builder()
             .setGranularity(Granularity.GRANULARITY_FINE)
             .build()
@@ -38,7 +39,7 @@ class DeviceLocationRepository(application: Application) {
         }
     }
 
-    fun listenSilent (period: Long, callback: (location: LocationData?) -> Unit) {
+    fun listenSilent (period: Long, callback: (location: LatLngPoint?) -> Unit) {
         val request = buildLocationRequest(period)
         locationUpdateCallback = buildCallback(callback)
 
@@ -50,7 +51,7 @@ class DeviceLocationRepository(application: Application) {
         )
     }
 
-    fun listen (period: Long, callback: (location: LocationData?) -> Unit = {}) {
+    fun listen (period: Long, callback: (location: LatLngPoint?) -> Unit = {}) {
         if (!isListening) {
             isListening = true
 
@@ -76,7 +77,7 @@ class DeviceLocationRepository(application: Application) {
         return locationRequest
     }
 
-    private fun buildCallback (callback: (location: LocationData?) -> Unit): LocationCallback {
+    private fun buildCallback (callback: (location: LatLngPoint?) -> Unit): LocationCallback {
         return object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 val l = locationResult.lastLocation
@@ -91,13 +92,8 @@ class DeviceLocationRepository(application: Application) {
     }
 }
 
-data class LocationData(
-    val latitude: Double,
-    val longitude: Double,
-)
-
-fun Location.toData(): LocationData {
-    return LocationData(
+fun Location.toData(): LatLngPoint {
+    return LatLngPoint(
         this.latitude,
         this.longitude
     )

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/needsPermissionsFragment">
+
+    <fragment
+        android:id="@+id/stopFragment"
+        android:name="com.cmd.myapplication.StopFragment"
+        android:label="fragment_stop"
+        tools:layout="@layout/fragment_stop">
+
+        <action
+            android:id="@+id/action_stopFragment_to_mainFragment"
+            app:destination="@id/mainFragment" />
+        <argument
+            android:name="stopId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/mainFragment"
+        android:name="com.cmd.myapplication.MainFragment"
+        android:label="fragment_main"
+        tools:layout="@layout/fragment_main">
+        <action
+            android:id="@+id/action_mainFragment_to_stopFragment"
+            app:destination="@id/stopFragment">
+        </action>
+    </fragment>
+
+    <fragment
+        android:id="@+id/needsPermissionsFragment"
+        android:name="com.cmd.myapplication.NeedsPermissionsFragment"
+        android:label="fragment_needs_permissions"
+        tools:layout="@layout/fragment_needs_permissions">
+        <action
+            android:id="@+id/action_needsPermissionsFragment_to_mainFragment"
+            app:destination="@id/mainFragment"
+            app:enterAnim="@android:anim/slide_in_left"
+            app:exitAnim="@android:anim/slide_out_right" />
+    </fragment>
+</navigation>

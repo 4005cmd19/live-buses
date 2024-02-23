@@ -30,5 +30,13 @@ class BusRoutesRepository(
 
     override fun ignore(lineIds: Array<String>) = lineIds.forEach { remoteDataSource.stopListeningTo(it) }
 
+    override fun requestOnce(ids: Array<String>, callback: (id: String, BusLineRoutes) -> Unit) {
+        this.request(ids) { lineId, routes ->
+            callback(lineId, routes)
+
+            ignore(arrayOf(lineId))
+        }
+    }
+
     override fun ignoreAll() = ignore(arrayOf("+"))
 }

@@ -1,45 +1,53 @@
 package com.cmd.myapplication
 
-import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewGroup.INVISIBLE
 import android.view.ViewGroup.MarginLayoutParams
+import android.view.ViewGroup.VISIBLE
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.doOnPreDraw
 import androidx.core.view.updateLayoutParams
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.activityViewModels
-import androidx.recyclerview.widget.RecyclerView
-import com.cmd.myapplication.data.repositories.BusRoutePoints
+import androidx.navigation.fragment.FragmentNavigatorExtras
+import androidx.navigation.fragment.findNavController
+import androidx.transition.TransitionManager
+import com.cmd.myapplication.data.BusLine
+import com.cmd.myapplication.data.BusLineRoute
+import com.cmd.myapplication.data.BusLineRoutes
+import com.cmd.myapplication.data.BusStop
+import com.cmd.myapplication.data.LatLngPoint
+import com.cmd.myapplication.data.LatLngRect
+import com.cmd.myapplication.data.Locality
+import com.cmd.myapplication.data.viewModels.BusLinesViewModel
+import com.cmd.myapplication.data.viewModels.BusRoutesViewModel
+import com.cmd.myapplication.data.viewModels.BusStopsViewModel
 import com.cmd.myapplication.data.viewModels.DeviceLocationViewModel
-import com.cmd.myapplication.utils.BusInfo
-import com.cmd.myapplication.utils.BusListAdapter
+import com.cmd.myapplication.data.viewModels.NearbyBusesViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.PolylineOptions
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDragHandleView
 import com.google.android.material.textfield.TextInputLayout
-import com.google.gson.Gson
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.InputStreamReader
-import java.net.HttpURLConnection
-import java.net.URL
+import com.google.android.material.transition.MaterialFade
+import kotlin.random.Random
 
+private const val DISPLAY_MAX_STOPS = 10
 
 /**
  * Fragment containing the map view, search bar and bus list
@@ -52,70 +60,98 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
     // provides the device's current location
     private val deviceLocationViewModel: DeviceLocationViewModel by activityViewModels { DeviceLocationViewModel.Factory }
+    private val busLinesViewModel: BusLinesViewModel by activityViewModels { BusLinesViewModel.Factory }
+    private val busStopsViewModel: BusStopsViewModel by activityViewModels { BusStopsViewModel.Factory }
+    private val busRoutesViewModel: BusRoutesViewModel by activityViewModels { BusRoutesViewModel.Factory }
+
+    private val nearbyBusStopsViewModel: NearbyBusesViewModel by activityViewModels { NearbyBusesViewModel.Factory }
+
+    private var shouldFollowDeviceLocation = true
+
+    private lateinit var searchBarContainer: ConstraintLayout
+    private lateinit var appIconView: ImageView
+    private lateinit var expandButton: Button
+    private lateinit var searchBar: TextInputLayout
+    private var mapView: SupportMapFragment? = null
+
+    private lateinit var bottomSheet: ConstraintLayout
+    private lateinit var bottomSheetBehavior: BottomSheetBehavior<ConstraintLayout>
+
+    private lateinit var bottomSheetDragHandleView: BottomSheetDragHandleView
+
+    private lateinit var bottomSheetContentView: ConstraintLayout
+    private lateinit var compactBusListFragmentContainer: FragmentContainerView
+    private lateinit var expandedBusListFragmentContainer: FragmentContainerView
+
+    private lateinit var recenterButton: Button
+
+    private var isBusListExpanded = true
+
+    private var selectedStopView: View? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        postponeEnterTransition()
+        view.doOnPreDraw { startPostponedEnterTransition() }
+
+        provideTestData()
+
+        exitTransition = MaterialFade().apply {
+            duration =
+                5000//resources.getInteger(com.google.android.material.R.integer.m3_sys_motion_duration_long2).toLong()
+            secondaryAnimatorProvider = null
+        }
+
+        reenterTransition = MaterialFade().apply {
+            duration =
+                5000//resources.getInteger(com.google.android.material.R.integer.m3_sys_motion_duration_long2).toLong()
+            secondaryAnimatorProvider = null
+        }
+
         // content layout contains search bar and bus list
         // separated from rest of layout so that window insets can be applied to it and not the map view
-        val content: ConstraintLayout = view.findViewById(R.id.content_view)
+
+        // val
+        searchBarContainer = view.findViewById(R.id.content_view)
 
         // app icon aligned with search bar
-        val appIconView: ImageView = view.findViewById(R.id.app_icon_view)
+        appIconView = view.findViewById(R.id.app_icon_view)
+
+        expandButton = view.findViewById(R.id.expand_bottom_sheet_button)
 
         // apply window insets to content view
         ViewCompat.setOnApplyWindowInsetsListener(view) { _, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
 
-            content.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-//                leftMargin = insets.left + 16.toDp(context)
+            searchBarContainer.updateLayoutParams<MarginLayoutParams> {
                 topMargin = insets.top
                 bottomMargin = insets.bottom
-//                rightMargin = insets.right + 16.toDp(context)
             }
 
-            return@setOnApplyWindowInsetsListener WindowInsetsCompat.CONSUMED
+            expandButton.updateLayoutParams<MarginLayoutParams> {
+                bottomMargin = insets.bottom
+            }
+
+            return@setOnApplyWindowInsetsListener WindowInsetsCompat(windowInsets)
         }
 
-        val searchBar: TextInputLayout = view.findViewById(R.id.search_bar)
+        searchBar = view.findViewById(R.id.search_bar)
 
-        val mapView = childFragmentManager.findFragmentById(R.id.map_view) as SupportMapFragment?
+        mapView = childFragmentManager.findFragmentById(R.id.map_view) as SupportMapFragment?
 
-        val bottomSheet: ConstraintLayout = view.findViewById(R.id.bottom_sheet)
-        val bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet)
-        bottomSheetBehavior.isHideable = false
+        bottomSheet = view.findViewById(R.id.bottom_sheet)
+        bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet)
+        bottomSheetBehavior.isHideable = true
         bottomSheetBehavior.peekHeight = (256 + 16).toDp(context)
 
-        val bottomSheetDragHandleView: BottomSheetDragHandleView =
-            view.findViewById(R.id.drag_handle)
+        bottomSheetDragHandleView = view.findViewById(R.id.drag_handle)
 
-        val bottomSheetHeadingView: TextView = view.findViewById(R.id.bottom_sheet_heading_view)
+        bottomSheetContentView = view.findViewById(R.id.bottom_sheet_content_view)
+        compactBusListFragmentContainer = view.findViewById(R.id.compact_bus_list_fragment)
+        expandedBusListFragmentContainer = view.findViewById(R.id.expanded_bus_list_fragment)
 
-        val bottomSheetContentView: ConstraintLayout =
-            view.findViewById(R.id.bottom_sheet_content_view)
-
-        val compactBusListView: RecyclerView = view.findViewById(R.id.compact_bus_list_view)
-        val expandedBusListView: RecyclerView = view.findViewById(R.id.expanded_bus_list_view)
-
-        // TODO for debugging purposes, remove later
-        compactBusListView.adapter = BusListAdapter(
-            arrayOf(
-                BusInfo("Route 1", "Now"),
-                BusInfo("Route 2", "Later"),
-                BusInfo("Route 3", "Even later")
-            )
-        )
-        expandedBusListView.adapter = BusListAdapter(
-            arrayOf(
-                BusInfo("Route 1", "Now"),
-                BusInfo("Route 2", "Later"),
-                BusInfo("Route 3", "Even later"),
-                BusInfo("Route 4", "Even later"),
-                BusInfo("Route 5", "Even later"),
-                BusInfo("Route 6", "Even later"),
-                BusInfo("Route 7", "Even later"),
-                BusInfo("Route 8", "Even later"),
-            ), true
-        )
-        // ----
+        recenterButton = view.findViewById(R.id.recenter_button)
+//        recenterButton.hide()
+//        recenterButton.extend()
 
         searchBar.viewTreeObserver.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
             override fun onGlobalLayout() {
@@ -155,11 +191,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }.apply { isEnabled = false }
 
         searchBar.editText?.setOnFocusChangeListener { _, hasFocus ->
-            Log.e(
-                TAG,
-                "focus changed - hasFocus=${hasFocus} f1=${searchBar.hasFocus()} f2=${searchBar.editText?.hasFocus()}"
-            )
-
             if (hasFocus) {
                 backPressedCallback.isEnabled = true
                 searchBar.isStartIconVisible = true
@@ -168,8 +199,12 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 if (searchBar.editText?.text?.isNotEmpty() == true) {
                     searchBar.isEndIconVisible = true
                 }
+
+                expandSearchBar()
             }
         }
+
+        searchBar.editText?.setOnClickListener { expandSearchBar() }
 
         searchBar.setStartIconOnClickListener {
             searchBar.isEndIconVisible = false
@@ -194,9 +229,9 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
 
         searchBar.editText?.doOnTextChanged { text, start, before, count ->
-            Log.e(TAG, "textChanged - text=${text} start=${start} before=${before} count=${count}")
-
             searchBar.isEndIconVisible = count > 0
+
+            expandSearchBar()
         }
 
         searchBar.editText?.setOnEditorActionListener { _, actionId, keyEvent ->
@@ -212,31 +247,15 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                     searchBar.isStartIconVisible = false
                     appIconView.visibility = View.VISIBLE
                 }
-
-                Log.e(TAG, "searchText - text=${text}")
             }
 
             return@setOnEditorActionListener true
         }
 
-        deviceLocationViewModel.requestLocation {
-            if (it != null) {
-                val (
-                    latitude,
-                    longitude,
-                ) = it
-
-                mapView?.getMapAsync { map ->
-                    map.moveCamera(
-                        CameraUpdateFactory.newLatLngZoom(
-                            LatLng(latitude, longitude),
-                            10f
-                        )
-                    )
-                }
-            }
+        expandButton.setOnClickListener {
+            hideExpandBusListButton()
+            expandBusList()
         }
-
 
         // ----- bottom sheet behaviour -----
         // shift content to accommodate for search bar
@@ -260,22 +279,28 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                     pState = newState
                     hasProcessedStateChange = false
 
-                    compactBusListView.visibility = View.VISIBLE
-                    expandedBusListView.visibility = View.INVISIBLE
+                    compactBusListFragmentContainer.visibility = View.VISIBLE
+                    expandedBusListFragmentContainer.visibility = View.INVISIBLE
 
                     bottomSheetBehavior.isDraggable = true
                 } else if (newState == BottomSheetBehavior.STATE_EXPANDED) {
                     pState = newState
                     hasProcessedStateChange = false
 
-                    compactBusListView.visibility = View.INVISIBLE
-                    expandedBusListView.visibility = View.VISIBLE
+                    // TODO replaced with fragments
+//                    expandedBusListView.isNestedScrollingEnabled = true
 
-                    expandedBusListView.isNestedScrollingEnabled = true
+                    compactBusListFragmentContainer.visibility = INVISIBLE
+                    expandedBusListFragmentContainer.visibility = VISIBLE
+
+                    // ----
 
                     bottomSheetBehavior.isDraggable = false
 
                     backPressedCallback.isEnabled = true
+                } else if (newState == BottomSheetBehavior.STATE_HIDDEN) {
+                    isBusListExpanded = false
+                    showExpandBusListButton()
                 }
             }
 
@@ -286,21 +311,21 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                     offset = searchBar.bottom.toFloat() + 16.toDp(context)
                     bottom = bottomSheetContentView.bottom
                     val lp = bottomSheetContentView.layoutParams as MarginLayoutParams
-                    lp.height =
-                        (bottom!! - offset!! + 16.toDp(context)).toInt() - bottomSheetHeadingView.height - bottomSheetDragHandleView.height
-                    bottomSheetContentView.layoutParams = lp
 
-                    Log.e("H", "start - ${lp.height}")
+                    Log.e(TAG, "y - ${bottomSheetContentView.y}")
+
+                    // TODO replaced with fragments
+//                    lp.height =
+//                        (bottom!! - offset!! + 16.toDp(context)).toInt() - bottomSheetHeadingView.height - bottomSheetDragHandleView.height
+
+                    lp.height =
+                        (bottom!! - offset!!).toInt() - bottomSheetDragHandleView.height
+                    // ----
+                    bottomSheetContentView.layoutParams = lp
                 }
 
                 val sOffset = (slideOffset * offset!!).toInt()
                 bottomSheetContentView.y = (startOffset!! + sOffset).toFloat()
-
-//                val lp = bottomSheetContentView.layoutParams as MarginLayoutParams
-//                lp.height = bottom!! - sOffset + 16.toDp(context)
-//                bottomSheetContentView.layoutParams = lp
-
-//                Log.e("H", "slide - ${lp.height}")
 
                 bottomSheetDragHandleView.alpha = (1 - slideOffset)
 
@@ -308,101 +333,255 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                     // started to expand
                     if (!hasProcessedStateChange) {
                         hasProcessedStateChange = true
-                        expandedBusListView.visibility = View.VISIBLE
-                        expandedBusListView.alpha = 0f
+
+                        // TODO replaced with fragments
+                        expandedBusListFragmentContainer.visibility = VISIBLE
+                        expandedBusListFragmentContainer.alpha = 0f
+                        // ----
                     }
                 } else if (pState == BottomSheetBehavior.STATE_EXPANDED && slideOffset < 1) {
                     // started to collapse
                     if (!hasProcessedStateChange) {
                         hasProcessedStateChange = true
-                        compactBusListView.visibility = View.VISIBLE
-                        compactBusListView.alpha = 0f
+
+                        // TODO replaced with fragments
+                        compactBusListFragmentContainer.visibility = VISIBLE
+                        compactBusListFragmentContainer.alpha = 0f
+                        // ----
                     }
                 }
 
                 val state = bottomSheetBehavior.state
                 if (state == BottomSheetBehavior.STATE_DRAGGING || state == BottomSheetBehavior.STATE_SETTLING) {
-                    compactBusListView.alpha = 1 - slideOffset
-                    expandedBusListView.alpha = slideOffset
+                    // TODO replaced with fragments
+                    compactBusListFragmentContainer.alpha = 1 - slideOffset
+                    expandedBusListFragmentContainer.alpha = slideOffset
+                    // ----
                 }
             }
 
         })
 
-        expandedBusListView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                val scrollPosition = recyclerView.computeVerticalScrollOffset()
-                val wasScrolledToTop = scrollPosition == 0 && dy < 0
+        // TODO implement in fragment
+//        expandedBusListView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+//            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+//                val scrollPosition = recyclerView.computeVerticalScrollOffset()
+//                val wasScrolledToTop = scrollPosition == 0 && dy < 0
+//
+//                expandedBusListView.isNestedScrollingEnabled = !wasScrolledToTop
+//                bottomSheetBehavior.isDraggable = wasScrolledToTop
+//            }
+//        })
 
-                expandedBusListView.isNestedScrollingEnabled = !wasScrolledToTop
-                bottomSheetBehavior.isDraggable = wasScrolledToTop
-            }
-        })
+        deviceLocationViewModel.currentLocation.observe(viewLifecycleOwner) { deviceLocation ->
+            if (deviceLocation != null) {
+                val (
+                    latitude,
+                    longitude,
+                ) = deviceLocation
 
-        Log.e(TAG, "res - ${resources.getString(R.string.GOOGLE_MAPS_API_KEY)}")
+                mapView?.getMapAsync { map ->
 
-        mapView?.getMapAsync {map ->
-            map.setOnCameraIdleListener {
-                val cameraBoundedArea = map.projection.visibleRegion.latLngBounds
-                val swLatLng = cameraBoundedArea.southwest
-                val neLatLng = cameraBoundedArea.northeast
+                    // recenter map
+                    recenterButton.setOnClickListener {
+                        map.animateCamera(
+                            CameraUpdateFactory.newLatLngZoom(
+                                LatLng(
+                                    deviceLocation.lat,
+                                    deviceLocation.lng,
+                                ),
+                                10f
+                            )
+                        )
 
-                Log.e(TAG, "map - $swLatLng $neLatLng")
+//                        recenterButton.hide()
+                        expandBusList()
+                    }
+
+                    //
+                    map.moveCamera(
+                        CameraUpdateFactory.newLatLngZoom(
+                            LatLng(latitude, longitude),
+                            10f
+                        )
+                    )
+
+                    map.setOnCameraMoveStartedListener {
+                        collapseBusList()
+                    }
+
+                    map.setOnCameraIdleListener {
+                        val cameraPosition = LatLngPoint(
+                            map.cameraPosition.target.latitude,
+                            map.cameraPosition.target.longitude
+                        )
+
+                        val cameraBoundedArea = map.projection.visibleRegion.latLngBounds
+                        val swLatLng = cameraBoundedArea.southwest
+                        val neLatLng = cameraBoundedArea.northeast
+
+                        val area = LatLngRect(
+                            LatLngPoint(swLatLng.latitude, swLatLng.longitude),
+                            LatLngPoint(neLatLng.latitude, neLatLng.longitude)
+                        )
+
+                        shouldFollowDeviceLocation =
+                            shouldFollowDeviceLocation && deviceLocation in area
+
+                        if (deviceLocation != cameraPosition) {
+//                            recenterButton.show()
+                        }
+                    }
+                }
             }
         }
 
-        // route points test
-        val KEY = "AIzaSyBVnEB4WLSxuZ-DLPzB42OBz0heU5J7OHo"
-
-        GlobalScope.launch {
-            withContext(Dispatchers.IO) {
-                try {
-                    val url = URL(
-                        "https://roads.googleapis.com/v1/snapToRoads" +
-                                "?interpolate=true" +
-                                "&path=-35.27801%2C149.12958%7C-35.28032%2C149.12907%7C-35.28099%2C149.12929%7C-35.28144%2C149.12984%7C-35.28194%2C149.13003%7C-35.28282%2C149.12956%7C-35.28302%2C149.12881%7C-35.28473%2C149.12836" +
-                                "&key=${KEY}"
-                    )
-
-                    val conn = url.openConnection() as HttpURLConnection
-                    val inputStream = conn.inputStream
-
-                    val reader = InputStreamReader(inputStream)
-
-                    val s = reader.readText()
-
-                    val json = Gson().fromJson(s, BusRoutePoints::class.java)
-
-                    val latLngs = json.snappedPoints?.map {
-                        LatLng(
-                            it.location.latitude,
-                            it.location.longitude
-                        )
-                    }
-
-                    json.snappedPoints?.forEach { }
-
-                    val options = PolylineOptions()
-                        .clickable(true)
-
-                    options.color(Color.valueOf(1f, 0f, 0f, 0.5f).toArgb())
-
-                    latLngs?.forEach { options.add(it) }
-
-                    Log.e(TAG, latLngs?.size.toString())
-
-                    withContext(Dispatchers.Main) {
-                        mapView?.getMapAsync { map ->
-                            map.addPolyline(options)
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "error")
-                    e.printStackTrace()
+        nearbyBusStopsViewModel.selectedBusStop.observe(viewLifecycleOwner) {
+            if (it == null) {
+                if (selectedStopView != null) {
+                    selectedStopView = null
                 }
+            } else {
+                val (id, stopView) = it
+
+                selectedStopView = stopView
+
+                val transitionName = "expand_stop_transition"
+
+                val extras = FragmentNavigatorExtras(
+                    stopView to transitionName,
+                    stopView.findViewById<TextView>(R.id.stop_name_view) to "translate_stop_name_view"
+                )
+                findNavController().navigate(
+                    MainFragmentDirections.actionMainFragmentToStopFragment(id),
+                    extras
+                )
             }
         }
     }
+
+    private fun collapseBusList() {
+        if (isBusListExpanded) {
+            isBusListExpanded = false
+            bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
+        }
+    }
+
+    private fun expandBusList() {
+        if (!isBusListExpanded) {
+            isBusListExpanded = true
+            bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+        }
+    }
+
+    private fun showExpandBusListButton() {
+        val fade = MaterialFade().apply {
+            duration = 500
+        }
+
+        TransitionManager.beginDelayedTransition(view as ViewGroup, fade)
+        expandButton.visibility = View.VISIBLE
+    }
+
+    private fun hideExpandBusListButton() {
+        val fade = MaterialFade().apply {
+            duration = 200
+        }
+
+        TransitionManager.beginDelayedTransition(view as ViewGroup, fade)
+        expandButton.visibility = View.INVISIBLE
+    }
+
+    private fun expandSearchBar() {
+        bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+    }
+
+    private fun collapseSearchBar() {
+        bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+    }
+
+//    private fun showStopFragment(view: View) {
+//        val transform = MaterialContainerTransform().apply {
+//            startView = view
+//            endView = stopFragmentContainer
+//            scrimColor = Color.TRANSPARENT
+//            duration = 500
+//            addTarget(stopFragmentContainer)
+//
+//            interpolator = MotionUtils.resolveThemeInterpolator(
+//                requireContext(),
+//                com.google.android.material.R.attr.motionEasingEmphasizedInterpolator,
+//                FastOutSlowInInterpolator()
+//            )
+//        }
+//
+//        transform.addListener(object : TransitionListener {
+//            override fun onTransitionStart(transition: Transition) {
+//                stopFragmentContainer.visibility = View.VISIBLE
+//            }
+//
+//            override fun onTransitionEnd(transition: Transition) {
+//                view.visibility = View.INVISIBLE
+//            }
+//
+//            override fun onTransitionCancel(transition: Transition) {
+//
+//            }
+//
+//            override fun onTransitionPause(transition: Transition) {
+//
+//            }
+//
+//            override fun onTransitionResume(transition: Transition) {
+//
+//            }
+//
+//        })
+//
+//        TransitionManager.beginDelayedTransition(view as ViewGroup, transform)
+//    }
+
+//    private fun hideStopFragment(view: View) {
+//        val transform = MaterialContainerTransform().apply {
+//            startView = stopFragmentContainer
+//            endView = view
+//            scrimColor = Color.TRANSPARENT
+//            duration = 200
+//
+//            addTarget(view)
+//
+//            interpolator = MotionUtils.resolveThemeInterpolator(
+//                requireContext(),
+//                com.google.android.material.R.attr.motionEasingEmphasizedInterpolator,
+//                FastOutSlowInInterpolator()
+//            )
+//        }
+//
+//        transform.addListener(object : TransitionListener {
+//            override fun onTransitionStart(transition: Transition) {
+//                view.visibility = View.VISIBLE
+//            }
+//
+//            override fun onTransitionEnd(transition: Transition) {
+//                stopFragmentContainer.visibility = View.INVISIBLE
+//            }
+//
+//            override fun onTransitionCancel(transition: Transition) {
+//
+//            }
+//
+//            override fun onTransitionPause(transition: Transition) {
+//
+//            }
+//
+//            override fun onTransitionResume(transition: Transition) {
+//
+//            }
+//
+//        })
+//
+//        TransitionManager.beginDelayedTransition(view as ViewGroup, transform)
+//    }
 
     private fun showKeyboard() {
         val view = requireView()
@@ -416,5 +595,160 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
         val keyboardManager = requireActivity().getSystemService(InputMethodManager::class.java)
         keyboardManager.hideSoftInputFromWindow(view.windowToken, 0)
+    }
+
+    private var hasTestData = false
+
+    private fun provideTestData() {
+        if (hasTestData) return
+        hasTestData = true
+
+        val stops = setOf(
+            BusStop(
+                "stopId0",
+                "stopCode0",
+                "Stop 1",
+                randomLocation(),
+                setOf("lineId2", "lineId5")
+            ),
+            BusStop(
+                "stopId1",
+                "stopCode1",
+                "Stop 2",
+                randomLocation(),
+                setOf("lineId0", "lineId4", "lineId7")
+            ),
+            BusStop(
+                "stopId2",
+                "stopCode2",
+                "Stop 3",
+                randomLocation(),
+                setOf("lineId1", "lineId6")
+            ),
+            BusStop(
+                "stopId3",
+                "stopCode3",
+                "Stop 4",
+                randomLocation(),
+                setOf("lineId0", "lineId6")
+            ),
+            BusStop(
+                "stopId4",
+                "stopCode4",
+                "Stop 5",
+                randomLocation(),
+                setOf("lineId8", "lineId1")
+            ),
+            BusStop(
+                "stopId5",
+                "stopCode5",
+                "Stop 6",
+                randomLocation(),
+                setOf("lineId11", "lineId9")
+            ),
+            BusStop(
+                "stopId6",
+                "stopCode6",
+                "Stop 7",
+                randomLocation(),
+                setOf("lineId3", "lineId10")
+            ),
+            BusStop(
+                "stopId7",
+                "stopCode7",
+                "Stop 8",
+                randomLocation(),
+                setOf("lineId7", "lineId3")
+            ),
+            BusStop(
+                "stopId8",
+                "stopCode8",
+                "Stop 9",
+                randomLocation(),
+                setOf("lineId9", "lineId11")
+            ),
+        )
+
+        val lines = setOf(
+            BusLine("lineId0", "X10", setOf(), setOf(""), setOf("stopId1", "stopId3")),
+            BusLine("lineId1", "2A", setOf(), setOf(""), setOf("stopId2", "stopId4")),
+            BusLine("lineId2", "2", setOf(), setOf(""), setOf("stopId0")),
+            BusLine("lineId3", "9X", setOf(), setOf(""), setOf("stopId6", "stopId7")),
+            BusLine("lineId4", "4W", setOf(), setOf(""), setOf("stopId1")),
+            BusLine("lineId5", "Y2", setOf(), setOf(""), setOf("stopId5")),
+            BusLine("lineId6", "91", setOf(), setOf(""), setOf("stopId2", "stopId3")),
+            BusLine("lineId7", "134", setOf(), setOf(""), setOf("stopId1", "stopId7")),
+            BusLine("lineId8", "43", setOf(), setOf(""), setOf("stopId4")),
+            BusLine("lineId9", "W10", setOf(), setOf(""), setOf("stopId5", "stopId8")),
+            BusLine("lineId10", "69", setOf(), setOf(""), setOf("stopId6")),
+            BusLine("lineId11", "261", setOf(), setOf(""), setOf("stopId5", "stopId8")),
+        )
+
+        val routes =
+            lines.map {
+                val lineRoutes = BusLineRoutes(
+                    it.id, setOf(
+                        BusLineRoute(
+                            "routeId0",
+                            "Muswell Hill to Archway",
+                            "0",
+                            "Muswell Hill Broadway",
+                            "0",
+                            "Archway Station",
+                            BusLineRoute.Direction.OUTBOUND,
+                            arrayOf()
+                        ),
+                        BusLineRoute(
+                            "routeId1",
+                            "Archway to Muswell Hill",
+                            "0",
+                            "Archway Station",
+                            "0",
+                            "Muswell Hill Broadway",
+                            BusLineRoute.Direction.INBOUND,
+                            arrayOf()
+                        ),
+                        BusLineRoute(
+                            "routeId2",
+                            "Muswell Hill to North Finchley",
+                            "0",
+                            "Muswell Hill Broadway",
+                            "0",
+                            "Woodhouse College",
+                            BusLineRoute.Direction.OUTBOUND,
+                            arrayOf()
+                        ),
+                        BusLineRoute(
+                            "routeId3",
+                            "North Finchely to Muswell Hill",
+                            "0",
+                            "Woodhouse College",
+                            "0",
+                            "Muswell Hill Broadway",
+                            BusLineRoute.Direction.INBOUND,
+                            arrayOf()
+                        ),
+                    )
+                )
+
+                val routeIds = lineRoutes.routes.map { it.id }.toSet()
+
+                it.routes = routeIds
+
+                lineRoutes
+            }.toSet()
+
+        busStopsViewModel.debugSet(stops)
+        busLinesViewModel.debugSet(lines)
+        busRoutesViewModel.debugSet(routes)
+    }
+
+    private fun randomLocation(): LatLngPoint {
+        val bounds = Locality.COVENTRY.location
+
+        val rLat = Random.nextDouble(bounds.southwest.lat, bounds.northeast.lat)
+        val rLng = Random.nextDouble(bounds.southwest.lng, bounds.northeast.lng)
+
+        return LatLngPoint(rLat, rLng)
     }
 }

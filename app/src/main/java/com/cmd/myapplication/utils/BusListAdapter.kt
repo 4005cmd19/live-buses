@@ -5,64 +5,63 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroup.MarginLayoutParams
 import android.widget.TextView
-import androidx.core.view.marginLeft
+import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.RecyclerView
 import com.cmd.myapplication.R
 import com.cmd.myapplication.toDp
 
-data class BusInfo(
-    val routeName: String,
+data class BusData(
+    val line: CharSequence,
+    val stop: CharSequence,
+    val destination: CharSequence,
     val arrivalTime: String,
 )
 
 class BusListAdapter(
-    private var busList: Array<BusInfo>,
-    val isExpanded: Boolean = false,
+    val busList: MutableList<BusData> = mutableListOf(),
 ) : RecyclerView.Adapter<BusListAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        companion object {
+        object Type {
             const val START = 0
-            const val MIDDLE = 1
+            const val INTERMEDIATE = 1
             const val END = 2
         }
 
-        val routeNameView: TextView
+        val lineNameView: TextView
+        val stopNameView: TextView
+        val destinationNameView: TextView
         val arrivalTimeView: TextView
 
         init {
-            routeNameView = view.findViewById(R.id.route_name_view)
+            lineNameView = view.findViewById(R.id.line_name_view)
+            stopNameView = view.findViewById(R.id.stop_name_view)
+            destinationNameView = view.findViewById(R.id.destination_name_view)
             arrivalTimeView = view.findViewById(R.id.arrival_time_view)
         }
     }
 
     override fun getItemViewType(position: Int): Int {
         if (position == 0) {
-            return ViewHolder.START
-        } else if (position == 2) {
-            return ViewHolder.END
+            return ViewHolder.Type.START
+        } else if (position == busList.lastIndex) {
+            return ViewHolder.Type.END
         }
 
-        return ViewHolder.MIDDLE
+        return ViewHolder.Type.INTERMEDIATE
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = if (isExpanded) {
-            LayoutInflater.from(parent.context)
-                .inflate(R.layout.expanded_bus_list_item, parent, false)
-        } else {
+        val view =
             LayoutInflater.from(parent.context)
                 .inflate(R.layout.compact_bus_list_item, parent, false)
-        }
 
-        if (!isExpanded) {
-            val lp = view.layoutParams as MarginLayoutParams
-            if (viewType == ViewHolder.START) {
-                lp.leftMargin = 16.toDp(view.context)
-                view.layoutParams = lp
-            } else if (viewType == ViewHolder.END) {
-                lp.rightMargin = 16.toDp(view.context)
-                view.layoutParams = lp
+        view.updateLayoutParams<MarginLayoutParams> {
+            if (viewType == ViewHolder.Type.START) {
+                leftMargin = 16.toDp(view.context)
+            }
+            else if (viewType == ViewHolder.Type.END) {
+                rightMargin = 16.toDp(view.context)
             }
         }
 
@@ -70,8 +69,14 @@ class BusListAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.routeNameView.text = busList[position].routeName
-        holder.arrivalTimeView.text = busList[position].arrivalTime
+        val data = busList[position]
+
+        holder.apply {
+            lineNameView.text = data.line
+            stopNameView.text = data.stop
+            destinationNameView.text = data.destination
+            arrivalTimeView.text = busList[position].arrivalTime
+        }
     }
 
     override fun getItemCount(): Int {

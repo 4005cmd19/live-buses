@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Widget.Material3.CardView.Filled"
     android:layout_width="match_parent"
     android:layout_height="128dp"
     android:layout_marginHorizontal="16dp"
     android:layout_marginVertical="8dp"
-    style="@style/Widget.Material3.CardView.Filled"
-    android:background="#20ff0000">
+    app:cardBackgroundColor="?attr/colorPrimaryContainer">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -14,19 +14,38 @@
         android:padding="16dp">
 
         <TextView
-            android:id="@+id/route_name_view"
+            android:id="@+id/stop_name_view"
+            style="?textAppearanceTitleLarge"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:layout_constraintBottom_toTopOf="@id/arrival_time_view"
-            app:layout_constraintTop_toTopOf="parent"
-            style="?textAppearanceTitleLarge"/>
+            app:layout_constraintBottom_toTopOf="@id/bus_lines_list_view"
+            android:textColor="?attr/colorOnPrimaryContainer"
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <TextView
-            android:id="@+id/arrival_time_view"
-            android:layout_width="match_parent"
+        <LinearLayout
+            android:id="@+id/bus_lines_list_view"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:orientation="horizontal"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/route_name_view"
-            style="?textAppearanceBodyLarge"/>
+            app:layout_constraintLeft_toLeftOf="parent"
+            android:layout_marginRight="8dp"
+            app:layout_constraintRight_toLeftOf="@id/expand_button"
+            app:layout_constraintTop_toBottomOf="@id/stop_name_view">
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/expand_button"
+            style="?attr/materialIconButtonFilledStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAlignment="center"
+            android:layout_marginEnd="8dp"
+            app:icon="@drawable/ic_more_vertical"
+            app:iconSize="24dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>

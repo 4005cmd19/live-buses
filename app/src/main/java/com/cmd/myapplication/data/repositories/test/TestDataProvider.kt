@@ -8,10 +8,11 @@ import com.cmd.myapplication.data.BusLineRoute
 import com.cmd.myapplication.data.BusLineRoutes
 import com.cmd.myapplication.data.BusStop
 import com.cmd.myapplication.data.LatLngPoint
-import com.cmd.myapplication.data.Locality
 import com.cmd.myapplication.data.repositories.RemoteDataSource
+import com.google.gson.Gson
 import com.google.gson.JsonParser
 import com.hivemq.client.mqtt.MqttClient
+import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt3.Mqtt3BlockingClient
 import java.io.InputStreamReader
 import java.net.URL
@@ -34,6 +35,47 @@ class TestDataProvider {
             .applySimpleAuth()
             .send()
     }
+
+    fun supplyData (lines: Set<BusLine>, stops: Set<BusStop>, routes: Set<BusLineRoutes>) {
+        for (line in lines.take(1)) {
+            val payload = Gson().toJson(line)
+
+            Log.e("PAYLOAD", payload)
+
+            client.publishWith()
+                .topic("buses/lines/${line.id}")
+                .retain(true)
+                .qos(MqttQos.AT_MOST_ONCE)
+                .payload(payload.toByteArray())
+                .send()
+        }
+
+        for (stop in stops.take(1)) {
+            val payload = Gson().toJson(stop)
+
+            Log.e("PAYLOAD", payload)
+
+            client.publishWith()
+                .topic("buses/stops/${stop.id}")
+                .retain(true)
+                .qos(MqttQos.AT_MOST_ONCE)
+                .payload(payload.toByteArray())
+                .send()
+        }
+
+        for (route in routes.take(1)) {
+            val payload = Gson().toJson(route)
+
+            Log.e("PAYLOAD", payload)
+
+            client.publishWith()
+                .topic("buses/lines/${route.lineId}/routes")
+                .retain(true)
+                .qos(MqttQos.AT_MOST_ONCE)
+                .payload(payload.toByteArray())
+                .send()
+        }
+    }
 }
 
 object Api {
@@ -54,7 +96,7 @@ object Api {
         return inputStream.readText()
     }
 
-    fun getStopsIn(locality: Locality): MutableSet<BusLine> {
+    fun getServiceData(): Triple<Set<BusLine>, Set<BusStop>, Set<BusLineRoutes>> {
         val successfulResponses = mutableListOf<String>()
 
         // val get all bus lines
@@ -298,9 +340,17 @@ object Api {
         val l = finalBusLines.joinToString("\n") { it.displayName }
         Log.e("TEST", l)
 
+        Log.e("TEST", finalBusLines.first().toString())
+        Log.e("TEST", finalBusStops.first().toString())
+        Log.e("TEST", finalBusRoutes.first().toString())
+
         // 1 + (34) + (2 * )
 
-        return finalBusLines
+        return Triple(
+            finalBusLines,
+            finalBusStops,
+            finalBusRoutes
+        )
     }
 
     const val BASE_URL = "http://api.tfwm.org.uk"

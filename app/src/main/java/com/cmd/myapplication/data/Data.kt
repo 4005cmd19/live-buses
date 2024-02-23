@@ -1,5 +1,8 @@
 package com.cmd.myapplication.data
 
+import kotlin.math.abs
+import kotlin.math.sqrt
+
 // NW 52.46307 -1.58341
 // SE 52.36034 -1.40351
 
@@ -24,18 +27,38 @@ enum class Locality(val location: LatLngRect) {
         )
     ),
 
-    NOT_FOUND (LatLngRect(LatLngPoint(0.0, 0.0), LatLngPoint(0.0, 0.0)))
+    NOT_FOUND(LatLngRect(LatLngPoint(0.0, 0.0), LatLngPoint(0.0, 0.0)))
 }
 
 data class LatLngPoint(
     var lat: Double,
     var lng: Double,
-)
+) {
+    override operator fun equals(other: Any?): Boolean {
+        if (other !is LatLngPoint) {
+            return false
+        }
+
+        return this.lat.toFloat() == other.lat.toFloat() && this.lng.toFloat() == other.lng.toFloat()
+    }
+    operator fun minus(latLngPoint: LatLngPoint): Double {
+        val dx = abs(this.lat - latLngPoint.lat)
+        val dy = abs(this.lng - latLngPoint.lng)
+
+        return sqrt(dx * dx + dy * dy)
+    }
+}
 
 data class LatLngRect(
     val southwest: LatLngPoint,
     val northeast: LatLngPoint,
-)
+) {
+    operator fun contains(latLngPoint: LatLngPoint): Boolean =
+        this.southwest.lat >= latLngPoint.lat
+                && this.northeast.lat <= latLngPoint.lat
+                && this.southwest.lng >= latLngPoint.lng
+                && this.northeast.lng <= latLngPoint.lng
+}
 
 data class BusStop(
     var id: String,
@@ -50,18 +73,18 @@ data class BusLine(
     var displayName: String,
     var operators: Set<BusLineOperator>,
     var stops: Set<String>,
-    var routes: Set<String>
+    var routes: Set<String>,
 )
 
-data class BusLineRoutes (
+data class BusLineRoutes(
     var lineId: String,
-    var routes: Set<BusLineRoute>
+    var routes: Set<BusLineRoute>,
 )
 
 data class BusLineRoute(
     var id: String,
     var name: String,
-    
+
     var startId: String,
     var startName: String,
 
@@ -69,7 +92,7 @@ data class BusLineRoute(
     var destinationName: String,
 
     var direction: Direction,
-    var path: Array<String>
+    var path: Array<String>,
 ) {
     enum class Direction {
         INBOUND,
@@ -80,10 +103,10 @@ data class BusLineRoute(
 data class BusLineOperator(
     var id: String,
     var code: String,
-    var name: String
+    var name: String,
 )
 
-data class BusArrival (
+data class BusArrival(
     var destinationId: String,
     var destinationName: String,
     var stopId: String,

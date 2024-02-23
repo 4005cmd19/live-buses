@@ -6,38 +6,23 @@ import com.hivemq.client.mqtt.mqtt3.Mqtt3BlockingClient
 import java.util.UUID
 
 class RemoteDataSource {
-    private val client: Mqtt3BlockingClient = MqttClient.builder()
-        .useMqttVersion3()
-        .identifier(UUID.randomUUID().toString())
-        .serverHost(HOST)
-        .serverPort(PORT)
-        .useSslWithDefaultConfig()
-        .buildBlocking()
+    private val client: Mqtt3BlockingClient =
+        MqttClient.builder().useMqttVersion3().identifier(UUID.randomUUID().toString())
+            .serverHost(HOST).serverPort(PORT).useSslWithDefaultConfig().buildBlocking()
 
     init {
-        client.connectWith()
-            .simpleAuth()
-            .username(APP_ID)
-            .password(APP_KEY)
-            .applySimpleAuth()
+        client.connectWith().simpleAuth().username(APP_ID).password(APP_KEY).applySimpleAuth()
             .send()
     }
 
     fun listenTo(topic: String, callback: (topic: String, payload: ByteArray) -> Unit) {
-        client.toAsync()
-            .subscribeWith()
-            .topicFilter(topic)
-            .qos(MqttQos.AT_MOST_ONCE)
-            .callback {
-                callback(it.topic.toString(), it.payloadAsBytes)
-            }
-            .send()
+        client.toAsync().subscribeWith().topicFilter(topic).qos(MqttQos.AT_MOST_ONCE).callback {
+            callback(it.topic.toString(), it.payloadAsBytes)
+        }.send()
     }
 
     fun stopListeningTo(topic: String) {
-        client.unsubscribeWith()
-            .topicFilter(topic)
-            .send()
+        client.unsubscribeWith().topicFilter(topic).send()
     }
 
     fun update(
@@ -46,12 +31,7 @@ class RemoteDataSource {
         retain: Boolean = true,
         qos: MqttQos = MqttQos.AT_MOST_ONCE,
     ) {
-        client.publishWith()
-            .topic(topic)
-            .payload(payload)
-            .retain(retain)
-            .qos(qos)
-            .send()
+        client.publishWith().topic(topic).payload(payload).retain(retain).qos(qos).send()
     }
 
     fun clearRequest(topic: String) {

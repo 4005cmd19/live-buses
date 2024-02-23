@@ -1,38 +1,34 @@
 package com.cmd.myapplication.data.viewModels
 
 import android.util.Log
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.cmd.myapplication.App
+import com.cmd.myapplication.data.LatLngPoint
+import com.cmd.myapplication.data.LatLngRect
 import com.cmd.myapplication.data.repositories.DeviceLocationRepository
-import com.cmd.myapplication.data.repositories.LocationData
 
 class DeviceLocationViewModel(
     private val repository: DeviceLocationRepository,
 ) : ViewModel() {
 
-    private val _currentLocation: MutableLiveData<LocationData?> =
-        MutableLiveData(null)
-    private lateinit var observer: Observer<LocationData?>
+    val currentLocation: MutableLiveData<LatLngPoint?> by lazy { MutableLiveData(null) }
 
-    var currentLocation: LocationData? = _currentLocation.value
-        private set
+    private val mapBounds: MutableLiveData<LatLngRect> by lazy { MutableLiveData() }
 
     init {
         Log.e(TAG, "init")
 
         repository.requestCurrentLocation {
             if (it != null) {
-                _currentLocation.value = it
-                Log.e(TAG, "current loc - ${it.latitude} ${it.longitude}")
+                currentLocation.value = it
+                Log.e(TAG, "current loc - ${it.lat} ${it.lng}")
             } else {
                 repository.listenSilent(PERIOD) {
                     if (it != null) {
-                        _currentLocation.value = it
+                        currentLocation.value = it
 
                         repository.stopListeningSilent()
                     }
@@ -41,36 +37,18 @@ class DeviceLocationViewModel(
         }
     }
 
-    fun requestLocation (callback: (location: LocationData?) -> Unit) {
-        val location = repository.requestCurrentLocation(callback)
+    fun requestLocation(callback: (location: LatLngPoint?) -> Unit) {
+        repository.requestCurrentLocation(callback)
     }
 
-    fun observe(
-        lifecycleOwner: LifecycleOwner,
-        callback: (location: LocationData?) -> Unit,
-    ) {
-        Log.e(TAG, "observe")
-        if (!::observer.isInitialized) {
-            observer = Observer {
-                callback(it)
-            }
+    fun start() {
+        repository.listen(PERIOD) {
+            currentLocation.value = it
         }
-
-        Log.e(TAG, "observer - $_currentLocation")
-
-        _currentLocation.observe(lifecycleOwner, observer)
-
-        Log.e(TAG, "calling listen")
-        repository.listen(PERIOD) { _currentLocation.value = it }
     }
 
-    fun stopObserving() {
+    fun stop () {
         repository.stopListening()
-        _currentLocation.removeObserver(observer)
-    }
-
-    private fun updateLocation(location: LocationData) {
-        _currentLocation.value = location
     }
 
     companion object {

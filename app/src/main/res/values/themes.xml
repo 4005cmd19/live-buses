@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.MyApplication" parent="Theme.Material3.DayNight.NoActionBar">
-
     </style>
 
     <style name="SearchView" parent="Theme.MyApplication">
@@ -9,8 +8,9 @@
         <item name="cornerSize">28dp</item>
     </style>
 
-    <style name="SearchField" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+    <style name="SearchBar" parent="Widget.Material3.TextInputLayout.OutlinedBox">
         <item name="cornerSize">28dp</item>
+        <item name="boxBackgroundColor">?attr/colorPrimaryContainer</item>
     </style>
 
     <style name="Theme.BottomSheet" parent="Widget.Material3.BottomSheet">
