@@ -1,5 +1,6 @@
 package com.cmd.myapplication.utils
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,6 +12,9 @@ import com.cmd.myapplication.R
 import com.cmd.myapplication.toDp
 
 data class BusData(
+    val stopId: String,
+    val lineId: String,
+
     val line: CharSequence,
     val stop: CharSequence,
     val destination: CharSequence,
@@ -21,7 +25,9 @@ class BusListAdapter(
     val busList: MutableList<BusData> = mutableListOf(),
 ) : RecyclerView.Adapter<BusListAdapter.ViewHolder>() {
 
-    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    private var onExpandListener: OnExpandListener? = null
+
+    class ViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
         object Type {
             const val START = 0
             const val INTERMEDIATE = 1
@@ -59,8 +65,7 @@ class BusListAdapter(
         view.updateLayoutParams<MarginLayoutParams> {
             if (viewType == ViewHolder.Type.START) {
                 leftMargin = 16.toDp(view.context)
-            }
-            else if (viewType == ViewHolder.Type.END) {
+            } else if (viewType == ViewHolder.Type.END) {
                 rightMargin = 16.toDp(view.context)
             }
         }
@@ -77,9 +82,22 @@ class BusListAdapter(
             destinationNameView.text = data.destination
             arrivalTimeView.text = busList[position].arrivalTime
         }
+
+        Log.e("TRANS", "name - ${holder.view.transitionName}")
+
+        holder.view.transitionName = "expand_stop_transition_${data.stopId}_${data.lineId}_${data.destination}"
+        holder.view.setOnClickListener { onExpandListener?.onExpand(holder.view, position, data) }
+    }
+
+    fun setOnExpandListener(onExpandListener: OnExpandListener?) {
+        this.onExpandListener = onExpandListener
     }
 
     override fun getItemCount(): Int {
         return busList.size
     }
+}
+
+fun interface OnExpandListener {
+    fun onExpand(view: View, position: Int, data: BusData)
 }

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/inner_nav_graph"
+    app:startDestination="@id/busListFragment">
+
+    <fragment
+        android:id="@+id/busListFragment"
+        android:name="com.cmd.myapplication.BusListFragment"
+        tools:layout="@layout/fragment_bus_list"
+        android:label="fragment_bus_list">
+        <action
+            android:id="@+id/action_busListFragment_to_stopFragment"
+            app:destination="@id/stopFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/stopFragment"
+        android:name="com.cmd.myapplication.StopFragment"
+        tools:layout="@layout/fragment_stop"
+        android:label="fragment_stop">
+
+        <argument
+            android:name="stopId"
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
+
+        <argument
+            android:name="lineId"
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
+
+        <action
+            android:id="@+id/action_stopFragment_to_busListFragment"
+            app:destination="@id/busListFragment" />
+    </fragment>
+</navigation>

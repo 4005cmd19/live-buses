@@ -13,6 +13,7 @@ import androidx.core.view.doOnPreDraw
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.viewpager2.widget.ViewPager2
@@ -20,9 +21,11 @@ import com.cmd.myapplication.data.viewModels.BusLinesViewModel
 import com.cmd.myapplication.data.viewModels.BusStopsViewModel
 import com.cmd.myapplication.data.viewModels.NearbyBusesViewModel
 import com.cmd.myapplication.utils.LinePagerAdapter
+import com.google.android.material.motion.MotionUtils
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import com.google.android.material.transition.MaterialContainerTransform
+import com.google.android.material.transition.MaterialFade
 
 /**
  * A simple [Fragment] subclass.
@@ -46,14 +49,53 @@ class StopFragment : Fragment(R.layout.fragment_stop) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val transformDuration = MotionUtils.resolveThemeDuration(
+            requireContext(),
+            com.google.android.material.R.attr.motionDurationLong2,
+            500
+        ).toLong()
+        //resources.getInteger(com.google.android.material.R.integer.m3_sys_motion_duration_long2)
+
+        val transformInterpolator = MotionUtils.resolveThemeInterpolator(
+            requireContext(),
+            com.google.android.material.R.attr.motionEasingEmphasizedInterpolator,
+            FastOutSlowInInterpolator()
+        )
+
+        val enterDuration = MotionUtils.resolveThemeDuration(
+            requireContext(),
+            com.google.android.material.R.attr.motionDurationMedium4,
+            400
+        ).toLong()
+
+        val exitDuration = MotionUtils.resolveThemeDuration(
+            requireContext(),
+            com.google.android.material.R.attr.motionDurationShort4,
+            200
+        ).toLong()
+
         sharedElementEnterTransition = MaterialContainerTransform().apply {
-            drawingViewId = R.id.fragment_container
-            duration = 5000
+            drawingViewId = R.id.bus_list_fragment_container
+
+            duration = transformDuration
+            interpolator = transformInterpolator
+
             scrimColor = Color.TRANSPARENT
             containerColor = Color.TRANSPARENT
             startContainerColor = Color.TRANSPARENT
             endContainerColor = Color.TRANSPARENT
         }
+
+        enterTransition = MaterialFade().apply {
+            duration = enterDuration
+        }
+
+        exitTransition = MaterialFade().apply {
+            duration = exitDuration
+        }
+
+        reenterTransition = enterTransition
+        returnTransition = exitTransition
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -65,8 +107,8 @@ class StopFragment : Fragment(R.layout.fragment_stop) {
                 val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
 
                 view.updateLayoutParams<MarginLayoutParams> {
-                    topMargin = insets.top + 32.toDp(context)
-                    bottomMargin = insets.bottom + 32.toDp(context)
+//                    topMargin = insets.top + 32.toDp(context)
+//                    bottomMargin = insets.bottom + 32.toDp(context)
                 }
 
                 return@OnApplyWindowInsetsListener WindowInsetsCompat.CONSUMED
@@ -91,7 +133,6 @@ class StopFragment : Fragment(R.layout.fragment_stop) {
         }.attach()
 
         closeButton.setOnClickListener {
-            nearbyBusesViewModel.selectedBusStop.value = null
             findNavController().navigateUp()
         }
     }

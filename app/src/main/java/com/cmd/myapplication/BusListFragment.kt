@@ -1,10 +1,15 @@
 package com.cmd.myapplication
 
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.TextView
+import androidx.core.view.doOnPreDraw
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Observer
+import androidx.navigation.fragment.FragmentNavigatorExtras
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import com.cmd.myapplication.data.viewModels.BusLinesViewModel
 import com.cmd.myapplication.data.viewModels.BusRoutesViewModel
@@ -13,6 +18,9 @@ import com.cmd.myapplication.data.viewModels.DeviceLocationViewModel
 import com.cmd.myapplication.data.viewModels.NearbyBusesViewModel
 import com.cmd.myapplication.utils.BusData
 import com.cmd.myapplication.utils.BusListAdapter
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.motion.MotionUtils
+import com.google.android.material.transition.MaterialFade
 
 /**
  * A simple [Fragment] subclass.
@@ -20,6 +28,8 @@ import com.cmd.myapplication.utils.BusListAdapter
  * create an instance of this fragment.
  */
 class BusListFragment : Fragment(R.layout.fragment_bus_list) {
+    private val sharedViewModel: SharedViewModel by activityViewModels { SharedViewModel.Factory }
+
     private val nearbyBusesViewModel: NearbyBusesViewModel by activityViewModels { NearbyBusesViewModel.Factory }
 
     private val deviceLocationViewModel: DeviceLocationViewModel by activityViewModels { DeviceLocationViewModel.Factory }
@@ -32,20 +42,40 @@ class BusListFragment : Fragment(R.layout.fragment_bus_list) {
 
     private val busListAdapter = BusListAdapter()
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        val exitDuration = MotionUtils.resolveThemeDuration(
+            requireContext(),
+            com.google.android.material.R.attr.motionDurationShort4,
+            200
+        ).toLong()
+
+        val enterDuration = MotionUtils.resolveThemeDuration(
+            requireContext(),
+            com.google.android.material.R.attr.motionDurationMedium4,
+            400
+        ).toLong()
+
+        exitTransition = MaterialFade().apply {
+            duration = exitDuration
+        }
+
+        reenterTransition = MaterialFade().apply {
+            duration = enterDuration
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        postponeEnterTransition()
+        view.doOnPreDraw { startPostponedEnterTransition() }
+
         bottomSheetHeadingView = view.findViewById(R.id.bottom_sheet_heading_view)
         compactBusListView = view.findViewById(R.id.compact_bus_list_view)
 
         compactBusListView.adapter = busListAdapter
 
-        busListAdapter.busList.addAll(
-            arrayOf(
-                BusData("X2", "Stop 1", "London", "Now"),
-                BusData("10", "Stop 2", "London", "Later"),
-                BusData("2", "Stop 3", "London", "Later"),
-                BusData("Y4", "Stop 4", "London", "Later"),
-            )
-        )
+        sharedViewModel.isBottomSheetDraggable.value = true
 
         nearbyBusesViewModel.nearbyBusStops.observe(viewLifecycleOwner) {
             busListAdapter.busList.clear()
@@ -57,12 +87,65 @@ class BusListFragment : Fragment(R.layout.fragment_bus_list) {
                 val routes = busRoutesViewModel.busRoutes.value?.find { it.lineId == line?.id }
                 val route = routes?.routes?.first()
 
-                BusData(line?.displayName ?: "", it.displayName, route?.destinationName ?: "", "Now")
+                BusData(
+                    it.id,
+                    line?.id ?: "",
+                    line?.displayName ?: "",
+                    it.displayName,
+                    route?.destinationName ?: "",
+                    "Now"
+                )
             }
 
             busListAdapter.busList.clear()
             busListAdapter.busList.addAll(data)
             busListAdapter.notifyDataSetChanged()
         }
+
+        busListAdapter.setOnExpandListener { itemView, _, data ->
+//            itemView.transitionName = "expand_stop_transition_${Random.nextInt()}"
+//            sharedViewModel.bottomSheetState.value = BottomSheetBehavior.STATE_EXPANDED
+
+//            findNavController().navigate(
+//                BusListFragmentDirections.actionBusListFragmentToStopFragment(
+//                    data.stopId,
+//                    data.lineId
+//                ),
+//                FragmentNavigatorExtras(itemView to "expand_stop_transition"),
+//            )
+
+            navigateToStopFragmentAnimated(itemView, data)
+        }
+    }
+
+    private fun navigateToStopFragmentAnimated (view: View, data: BusData) {
+        sharedViewModel.bottomSheetState.value = BottomSheetBehavior.STATE_EXPANDED
+        sharedViewModel.isBottomSheetDraggable.value = false
+
+        if (sharedViewModel.bottomSheetOffset.value != 1f) {
+            sharedViewModel.bottomSheetOffset.observe(viewLifecycleOwner, object : Observer<Float> {
+                override fun onChanged(value: Float) {
+                    Log.e("NAV", "value - $value")
+                    if (value == 1f) {
+                        sharedViewModel.bottomSheetOffset.removeObserver(this)
+                        Log.e("NAV", "postponed")
+                        navigateToStopFragment(view, data)
+                    }
+                }
+            })
+        }
+        else {
+            navigateToStopFragment(view, data)
+        }
+    }
+
+    private fun navigateToStopFragment(view: View, data: BusData) {
+        findNavController().navigate(
+            BusListFragmentDirections.actionBusListFragmentToStopFragment(
+                data.stopId,
+                data.lineId
+            ),
+            FragmentNavigatorExtras(view to "expand_stop_transition"),
+        )
     }
 }

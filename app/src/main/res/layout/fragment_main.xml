@@ -69,17 +69,11 @@
                 app:layout_constraintTop_toBottomOf="@id/drag_handle">
 
                 <androidx.fragment.app.FragmentContainerView
-                    android:id="@+id/compact_bus_list_fragment"
+                    android:id="@+id/bottom_sheet_fragment_container"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:name="com.cmd.myapplication.BusListFragment"/>
-
-                <androidx.fragment.app.FragmentContainerView
-                    android:id="@+id/expanded_bus_list_fragment"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:name="com.cmd.myapplication.ExpandedBusListFragment"
-                    android:visibility="invisible"/>
+                    android:name="com.cmd.myapplication.BottomSheetFragment"
+                    android:visibility="visible"/>
 
 <!--                <TextView-->
 <!--                    android:id="@+id/bottom_sheet_heading_view"-->

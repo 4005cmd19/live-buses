@@ -4,15 +4,12 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
-import android.view.ViewGroup.INVISIBLE
 import android.view.ViewGroup.MarginLayoutParams
-import android.view.ViewGroup.VISIBLE
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.ImageView
-import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
@@ -23,8 +20,6 @@ import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.activityViewModels
-import androidx.navigation.fragment.FragmentNavigatorExtras
-import androidx.navigation.fragment.findNavController
 import androidx.transition.TransitionManager
 import com.cmd.myapplication.data.BusLine
 import com.cmd.myapplication.data.BusLineRoute
@@ -58,6 +53,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         const val TAG = "MainFragment"
     }
 
+    private val sharedViewModel: SharedViewModel by activityViewModels { SharedViewModel.Factory }
+
     // provides the device's current location
     private val deviceLocationViewModel: DeviceLocationViewModel by activityViewModels { DeviceLocationViewModel.Factory }
     private val busLinesViewModel: BusLinesViewModel by activityViewModels { BusLinesViewModel.Factory }
@@ -80,14 +77,11 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private lateinit var bottomSheetDragHandleView: BottomSheetDragHandleView
 
     private lateinit var bottomSheetContentView: ConstraintLayout
-    private lateinit var compactBusListFragmentContainer: FragmentContainerView
-    private lateinit var expandedBusListFragmentContainer: FragmentContainerView
+    private lateinit var bottomSheetFragmentContainer: FragmentContainerView
 
     private lateinit var recenterButton: Button
 
     private var isBusListExpanded = true
-
-    private var selectedStopView: View? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         postponeEnterTransition()
@@ -142,12 +136,12 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet)
         bottomSheetBehavior.isHideable = true
         bottomSheetBehavior.peekHeight = (256 + 16).toDp(context)
+        bottomSheetBehavior.isDraggable = true
 
         bottomSheetDragHandleView = view.findViewById(R.id.drag_handle)
 
         bottomSheetContentView = view.findViewById(R.id.bottom_sheet_content_view)
-        compactBusListFragmentContainer = view.findViewById(R.id.compact_bus_list_fragment)
-        expandedBusListFragmentContainer = view.findViewById(R.id.expanded_bus_list_fragment)
+        bottomSheetFragmentContainer = view.findViewById(R.id.bottom_sheet_fragment_container)
 
         recenterButton = view.findViewById(R.id.recenter_button)
 //        recenterButton.hide()
@@ -279,8 +273,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                     pState = newState
                     hasProcessedStateChange = false
 
-                    compactBusListFragmentContainer.visibility = View.VISIBLE
-                    expandedBusListFragmentContainer.visibility = View.INVISIBLE
+//                    compactBusListFragmentContainer.visibility = View.VISIBLE
+//                    expandedBusListFragmentContainer.visibility = View.INVISIBLE
 
                     bottomSheetBehavior.isDraggable = true
                 } else if (newState == BottomSheetBehavior.STATE_EXPANDED) {
@@ -290,8 +284,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                     // TODO replaced with fragments
 //                    expandedBusListView.isNestedScrollingEnabled = true
 
-                    compactBusListFragmentContainer.visibility = INVISIBLE
-                    expandedBusListFragmentContainer.visibility = VISIBLE
+//                    compactBusListFragmentContainer.visibility = INVISIBLE
+//                    expandedBusListFragmentContainer.visibility = VISIBLE
 
                     // ----
 
@@ -324,6 +318,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                     bottomSheetContentView.layoutParams = lp
                 }
 
+                sharedViewModel.bottomSheetOffset.value = slideOffset
+
                 val sOffset = (slideOffset * offset!!).toInt()
                 bottomSheetContentView.y = (startOffset!! + sOffset).toFloat()
 
@@ -335,8 +331,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                         hasProcessedStateChange = true
 
                         // TODO replaced with fragments
-                        expandedBusListFragmentContainer.visibility = VISIBLE
-                        expandedBusListFragmentContainer.alpha = 0f
+//                        expandedBusListFragmentContainer.visibility = VISIBLE
+//                        expandedBusListFragmentContainer.alpha = 0f
                         // ----
                     }
                 } else if (pState == BottomSheetBehavior.STATE_EXPANDED && slideOffset < 1) {
@@ -345,8 +341,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                         hasProcessedStateChange = true
 
                         // TODO replaced with fragments
-                        compactBusListFragmentContainer.visibility = VISIBLE
-                        compactBusListFragmentContainer.alpha = 0f
+//                        compactBusListFragmentContainer.visibility = VISIBLE
+//                        compactBusListFragmentContainer.alpha = 0f
                         // ----
                     }
                 }
@@ -354,24 +350,13 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 val state = bottomSheetBehavior.state
                 if (state == BottomSheetBehavior.STATE_DRAGGING || state == BottomSheetBehavior.STATE_SETTLING) {
                     // TODO replaced with fragments
-                    compactBusListFragmentContainer.alpha = 1 - slideOffset
-                    expandedBusListFragmentContainer.alpha = slideOffset
+//                    compactBusListFragmentContainer.alpha = 1 - slideOffset
+//                    expandedBusListFragmentContainer.alpha = slideOffset
                     // ----
                 }
             }
 
         })
-
-        // TODO implement in fragment
-//        expandedBusListView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-//            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-//                val scrollPosition = recyclerView.computeVerticalScrollOffset()
-//                val wasScrolledToTop = scrollPosition == 0 && dy < 0
-//
-//                expandedBusListView.isNestedScrollingEnabled = !wasScrolledToTop
-//                bottomSheetBehavior.isDraggable = wasScrolledToTop
-//            }
-//        })
 
         deviceLocationViewModel.currentLocation.observe(viewLifecycleOwner) { deviceLocation ->
             if (deviceLocation != null) {
@@ -436,27 +421,12 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
         }
 
-        nearbyBusStopsViewModel.selectedBusStop.observe(viewLifecycleOwner) {
-            if (it == null) {
-                if (selectedStopView != null) {
-                    selectedStopView = null
-                }
-            } else {
-                val (id, stopView) = it
+        sharedViewModel.bottomSheetState.observe(viewLifecycleOwner) {
+            bottomSheetBehavior.state = it
+        }
 
-                selectedStopView = stopView
-
-                val transitionName = "expand_stop_transition"
-
-                val extras = FragmentNavigatorExtras(
-                    stopView to transitionName,
-                    stopView.findViewById<TextView>(R.id.stop_name_view) to "translate_stop_name_view"
-                )
-                findNavController().navigate(
-                    MainFragmentDirections.actionMainFragmentToStopFragment(id),
-                    extras
-                )
-            }
+        sharedViewModel.isBottomSheetDraggable.observe(viewLifecycleOwner) {
+            bottomSheetBehavior.isDraggable = it
         }
     }
 

@@ -21,7 +21,7 @@
         app:layout_constraintTop_toBottomOf="@id/bottom_sheet_heading_view"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="16dp">
+        android:layout_marginTop="8dp">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/compact_bus_list_view"
