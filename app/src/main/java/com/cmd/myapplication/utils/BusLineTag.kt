@@ -2,6 +2,9 @@ package com.cmd.myapplication.utils
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.drawable.Drawable
+import android.util.AttributeSet
+import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
@@ -11,12 +14,191 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.annotation.AttrRes
 import androidx.annotation.ColorInt
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.children
 import androidx.core.view.updateLayoutParams
 import com.cmd.myapplication.R
 import com.cmd.myapplication.toDp
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.shape.ShapeAppearanceModel
+import com.google.android.material.shape.Shapeable
+
+private val ELLIPSIZED_LAYOUT_ID = R.layout.ellipsized_tag_view_layout
+
+const val TAG = "Tag"
+
+object TagUtils {
+    fun makeGroup(
+        vararg tags: Tag,
+        outerCornerSize: Float = tags.first().context.let { 8f.toDp(it) },
+        innerCornerSize: Float = tags.first().context.let { 4f.toDp(it) },
+    ) {
+        tags.first().makeStart(outerCornerSize, innerCornerSize)
+        tags.last().makeEnd(outerCornerSize, innerCornerSize)
+        tags.filterIndexed { i, _ -> i != 0 && i != tags.lastIndex }
+            .forEach { it.makeIntermediate(innerCornerSize) }
+    }
+
+    private fun Tag.makeStart(outerCornerSize: Float, innerCornerSize: Float) {
+        shapeAppearanceModel = ShapeAppearanceModel().toBuilder().apply {
+            setTopLeftCornerSize(outerCornerSize)
+            setBottomLeftCornerSize(outerCornerSize)
+            setTopRightCornerSize(innerCornerSize)
+            setBottomRightCornerSize(innerCornerSize)
+        }.build()
+
+        updateLayoutParams<MarginLayoutParams> {
+            rightMargin = 2.toDp(context)
+        }
+    }
+
+    private fun Tag.makeIntermediate(innerCornerSize: Float) {
+        shapeAppearanceModel = ShapeAppearanceModel().toBuilder().apply {
+            setTopLeftCornerSize(innerCornerSize)
+            setBottomLeftCornerSize(innerCornerSize)
+            setTopRightCornerSize(innerCornerSize)
+            setBottomRightCornerSize(innerCornerSize)
+        }.build()
+
+        updateLayoutParams<MarginLayoutParams> {
+            leftMargin = 2.toDp(context)
+            rightMargin = 2.toDp(context)
+        }
+    }
+
+    private fun Tag.makeEnd(outerCornerSize: Float, innerCornerSize: Float) {
+        shapeAppearanceModel = ShapeAppearanceModel().toBuilder().apply {
+            setTopLeftCornerSize(innerCornerSize)
+            setBottomLeftCornerSize(innerCornerSize)
+            setTopRightCornerSize(outerCornerSize)
+            setBottomRightCornerSize(outerCornerSize)
+        }.build()
+
+        updateLayoutParams<MarginLayoutParams> {
+            leftMargin = 2.toDp(context)
+        }
+    }
+}
+
+class Tag(
+    context: Context,
+    attrs: AttributeSet?,
+    defStyleAttr: Int,
+) : CoordinatorLayout(
+    context, attrs, defStyleAttr
+), Shapeable {
+    private var _text: CharSequence? = null
+
+    var text: CharSequence?
+        get() = _text
+        set(value) {
+            _text = value
+
+            _icon = null
+            tagIconView.visibility = GONE
+            tagTextView.visibility = VISIBLE
+            tagTextView.text = value
+        }
+
+    private var _icon: Drawable? = null
+    var icon: Drawable?
+        get() = _icon
+        set(value) {
+            _icon = value
+
+            _text = null
+            tagTextView.visibility = GONE
+            tagIconView.visibility = VISIBLE
+            tagIconView.setImageDrawable(value)
+        }
+
+    private var _foregroundColor: Int = Color.BLACK
+    var foregroundColor: Int
+        get() = _foregroundColor
+        set(value) {
+            _foregroundColor = value
+            tagTextView.setTextColor(value)
+            tagIconView.setColorFilter(value)
+        }
+
+    private val cardView: MaterialCardView
+    private val tagTextView: TextView
+    private val tagIconView: ImageView
+
+    init {
+        inflate(context, LAYOUT_ID, this)
+
+        cardView = findViewById(R.id.container)
+        tagTextView = findViewById(R.id.text_view)
+        tagIconView = findViewById(R.id.icon_view)
+
+        context.theme.obtainStyledAttributes(
+            attrs,
+            R.styleable.Tag,
+            R.attr.tagStyle, R.style.Tag
+        ).apply {
+            try {
+                val backgroundColor =
+                    getColor(R.styleable.Tag_backgroundColor, Color.RED)
+                val textColor = getColor(R.styleable.Tag_foregroundColor, Color.BLACK)
+
+                val text = getString(R.styleable.Tag_text)
+                val icon = getDrawable(R.styleable.Tag_icon)
+
+                setBackgroundColor(backgroundColor)
+                this@Tag.foregroundColor = textColor
+
+                if (text != null) {
+                    this@Tag._text = text
+                } else if (icon != null) {
+                    this@Tag._icon = icon
+                }
+            } finally {
+                recycle()
+            }
+        }
+    }
+
+    constructor(context: Context, attributeSet: AttributeSet?) : this(context, attributeSet, 0)
+
+    constructor(context: Context) : this(context, null, 0)
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        super.onLayout(changed, l, t, r, b)
+
+        if (changed) {
+            tagIconView.apply {
+                layoutParams.height = tagTextView.height
+
+                if (_text != null) {
+                    text = _text
+                } else {
+                    icon = _icon
+                }
+
+                layoutParams.let {
+                    if (icon != null) {
+                        Log.e(TAG, "w=${it.width} h=${it.height} t=${tagTextView.height}")
+                    }
+                }
+            }
+        }
+    }
+
+    override fun setBackgroundColor(color: Int) {
+        cardView.setCardBackgroundColor(color)
+    }
+
+    companion object {
+        private val LAYOUT_ID = R.layout.tag_view_layout
+    }
+
+    override fun setShapeAppearanceModel(shapeAppearanceModel: ShapeAppearanceModel) {
+        cardView.shapeAppearanceModel = shapeAppearanceModel
+    }
+
+    override fun getShapeAppearanceModel(): ShapeAppearanceModel = cardView.shapeAppearanceModel
+}
 
 object BusLineTag {
     const val TAG_CORNER_SIZE_DP = 8
@@ -44,7 +226,7 @@ object BusLineTag {
             setBottomRightCornerSize(cornerSize)
         }.build()
 
-        val nameView: TextView = view.findViewById(R.id.name)
+        val nameView: TextView = view.findViewById(R.id.text_view)
         nameView.setTextColor(contentColor)
 
         nameView.text = name

@@ -80,9 +80,7 @@ class ExpandedBusListFragment : Fragment(R.layout.fragment_expanded_bus_list) {
             expandedView?.transitionName = null
             expandedView?.findViewById<TextView>(R.id.stop_name_view)?.transitionName = null
 
-            view.transitionName = "expand_stop_transition"
-            view.findViewById<TextView>(R.id.stop_name_view).transitionName =
-                "translate_stop_name_view"
+            view.transitionName = "expand_stop_transition_$stopId"
             expandedView = view
 
             nearbyBusesViewModel.selectedBusStop.value = stopId to view

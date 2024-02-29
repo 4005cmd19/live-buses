@@ -33,6 +33,25 @@
             app:layout_constraintRight_toLeftOf="@id/expand_button"
             app:layout_constraintTop_toBottomOf="@id/stop_name_view">
 
+<!--            <com.cmd.myapplication.utils.Tag-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"/>-->
+
+<!--            <com.cmd.myapplication.utils.Tag-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"/>-->
+
+<!--            <com.cmd.myapplication.utils.Tag-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"/>-->
+
+<!--            <com.cmd.myapplication.utils.Tag-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"/>-->
+
+<!--            <com.cmd.myapplication.utils.Tag-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"/>-->
         </LinearLayout>
 
         <Button

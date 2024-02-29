@@ -12,7 +12,6 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.ImageView
-import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
@@ -26,13 +25,8 @@ import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.FragmentNavigatorExtras
 import androidx.navigation.fragment.findNavController
 import androidx.transition.TransitionManager
-import com.cmd.myapplication.data.BusLine
-import com.cmd.myapplication.data.BusLineRoute
-import com.cmd.myapplication.data.BusLineRoutes
-import com.cmd.myapplication.data.BusStop
 import com.cmd.myapplication.data.LatLngPoint
 import com.cmd.myapplication.data.LatLngRect
-import com.cmd.myapplication.data.Locality
 import com.cmd.myapplication.data.viewModels.BusLinesViewModel
 import com.cmd.myapplication.data.viewModels.BusRoutesViewModel
 import com.cmd.myapplication.data.viewModels.BusStopsViewModel
@@ -42,10 +36,10 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback
 import com.google.android.material.bottomsheet.BottomSheetDragHandleView
 import com.google.android.material.textfield.TextInputLayout
 import com.google.android.material.transition.MaterialFade
-import kotlin.random.Random
 
 private const val DISPLAY_MAX_STOPS = 10
 
@@ -57,6 +51,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         // for debug purposes
         const val TAG = "MainFragment"
     }
+
+    private val sharedViewModel: SharedViewModel by activityViewModels { SharedViewModel.Factory }
 
     // provides the device's current location
     private val deviceLocationViewModel: DeviceLocationViewModel by activityViewModels { DeviceLocationViewModel.Factory }
@@ -76,6 +72,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
     private lateinit var bottomSheet: ConstraintLayout
     private lateinit var bottomSheetBehavior: BottomSheetBehavior<ConstraintLayout>
+    private lateinit var bottomSheetCallback: BottomSheetCallback
 
     private lateinit var bottomSheetDragHandleView: BottomSheetDragHandleView
 
@@ -90,21 +87,22 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private var selectedStopView: View? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        postponeEnterTransition()
-        view.doOnPreDraw { startPostponedEnterTransition() }
-
-        provideTestData()
-
         exitTransition = MaterialFade().apply {
             duration =
-                5000//resources.getInteger(com.google.android.material.R.integer.m3_sys_motion_duration_long2).toLong()
+                500//resources.getInteger(com.google.android.material.R.integer.m3_sys_motion_duration_long2).toLong()
             secondaryAnimatorProvider = null
         }
 
         reenterTransition = MaterialFade().apply {
             duration =
-                5000//resources.getInteger(com.google.android.material.R.integer.m3_sys_motion_duration_long2).toLong()
+                500//resources.getInteger(com.google.android.material.R.integer.m3_sys_motion_duration_long2).toLong()
             secondaryAnimatorProvider = null
+        }
+
+        postponeEnterTransition()
+        view.doOnPreDraw {
+            Log.w("STATE_VM", "bss - ${bottomSheetBehavior.state}")
+            startPostponedEnterTransition()
         }
 
         // content layout contains search bar and bus list
@@ -150,8 +148,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         expandedBusListFragmentContainer = view.findViewById(R.id.expanded_bus_list_fragment)
 
         recenterButton = view.findViewById(R.id.recenter_button)
-//        recenterButton.hide()
-//        recenterButton.extend()
 
         searchBar.viewTreeObserver.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
             override fun onGlobalLayout() {
@@ -184,6 +180,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
 
             if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED) {
+                Log.w("STATE_VM", "collapsing bs")
                 bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
             }
 
@@ -254,7 +251,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
         expandButton.setOnClickListener {
             hideExpandBusListButton()
-            expandBusList()
+//            expandBusList() // TODO aaaa
         }
 
         // ----- bottom sheet behaviour -----
@@ -265,8 +262,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         var bottom: Int? = null
 
 
-        bottomSheetBehavior.addBottomSheetCallback(object :
-            BottomSheetBehavior.BottomSheetCallback() {
+        bottomSheetBehavior.addBottomSheetCallback(object : BottomSheetCallback() {
             var pState = bottomSheetBehavior.state
 
             // use to avoid unnecessarily setting view visibility
@@ -274,7 +270,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             var hasProcessedStateChange = false
 
             override fun onStateChanged(bottomSheet: View, newState: Int) {
-
                 if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
                     pState = newState
                     hasProcessedStateChange = false
@@ -287,8 +282,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                     pState = newState
                     hasProcessedStateChange = false
 
-                    // TODO replaced with fragments
-//                    expandedBusListView.isNestedScrollingEnabled = true
+                    Log.e("STATE_VM", "state changed - expanded")
 
                     compactBusListFragmentContainer.visibility = INVISIBLE
                     expandedBusListFragmentContainer.visibility = VISIBLE
@@ -359,19 +353,9 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                     // ----
                 }
             }
+        }.also { bottomSheetCallback = it })
 
-        })
-
-        // TODO implement in fragment
-//        expandedBusListView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-//            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-//                val scrollPosition = recyclerView.computeVerticalScrollOffset()
-//                val wasScrolledToTop = scrollPosition == 0 && dy < 0
-//
-//                expandedBusListView.isNestedScrollingEnabled = !wasScrolledToTop
-//                bottomSheetBehavior.isDraggable = wasScrolledToTop
-//            }
-//        })
+        restoreState()
 
         deviceLocationViewModel.currentLocation.observe(viewLifecycleOwner) { deviceLocation ->
             if (deviceLocation != null) {
@@ -395,7 +379,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                         )
 
 //                        recenterButton.hide()
-                        expandBusList()
+                        //expandBusList() TODO aaaa
                     }
 
                     //
@@ -407,7 +391,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                     )
 
                     map.setOnCameraMoveStartedListener {
-                        collapseBusList()
+                        Log.w("STATE_VM", "moved")
+//                        collapseBusList() // TODO aaaaaaa
                     }
 
                     map.setOnCameraIdleListener {
@@ -428,8 +413,31 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                         shouldFollowDeviceLocation =
                             shouldFollowDeviceLocation && deviceLocation in area
 
-                        if (deviceLocation != cameraPosition) {
-//                            recenterButton.show()
+
+                        val isCentered =
+                            deviceLocation == cameraPosition //deviceLocation.approxEquals(cameraPosition)
+                        Log.e(
+                            TAG,
+                            "dl - $deviceLocation $cameraPosition eq=${
+                                deviceLocation.approxEquals(cameraPosition)
+                            }"
+                        )
+
+                        if (!isCentered) {//deviceLocation != cameraPosition) {
+
+                            val transition = MaterialFade().apply {
+                                duration = 200
+                            }
+
+                            TransitionManager.beginDelayedTransition(view as ViewGroup, transition)
+                            recenterButton.visibility = View.VISIBLE
+                        } else {
+                            val transition = MaterialFade().apply {
+                                duration = 500
+                            }
+
+                            TransitionManager.beginDelayedTransition(view as ViewGroup, transition)
+                            recenterButton.visibility = View.INVISIBLE
                         }
                     }
                 }
@@ -450,14 +458,56 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
                 val extras = FragmentNavigatorExtras(
                     stopView to transitionName,
-                    stopView.findViewById<TextView>(R.id.stop_name_view) to "translate_stop_name_view"
                 )
+
+                sharedViewModel.saveState(this@MainFragment, Bundle().apply {
+                    putInt("bottomSheetState", bottomSheetBehavior.state)
+                })
+
                 findNavController().navigate(
                     MainFragmentDirections.actionMainFragmentToStopFragment(id),
                     extras
                 )
             }
         }
+    }
+
+    private fun restoreState() {
+        val state = sharedViewModel.restoreState(this)
+
+        Log.w("STATE_VM", "state - $state")
+
+        state?.let {
+            it.apply {
+                val bottomSheetState = getInt("bottomSheetState")
+
+                Log.w("STATE_VM", "applying bottom sheet state - $bottomSheetState")
+
+                bottomSheetCallback.onSlide(bottomSheet, 1f)
+                bottomSheetBehavior.state = bottomSheetState
+//                bottomSheetCallback.onStateChanged(bottomSheet, bottomSheetBehavior.state)
+            }
+        }
+    }
+
+    private fun applyExpandedOffset () {
+        val startOffset = bottomSheetContentView.top
+        val offset = searchBar.bottom.toFloat() + 16.toDp(context)
+        val bottom = bottomSheetContentView.bottom
+        val lp = bottomSheetContentView.layoutParams as MarginLayoutParams
+
+        Log.e(TAG, "y - ${bottomSheetContentView.y}")
+
+        // TODO replaced with fragments
+//                    lp.height =
+//                        (bottom!! - offset!! + 16.toDp(context)).toInt() - bottomSheetHeadingView.height - bottomSheetDragHandleView.height
+
+        lp.height =
+            (bottom - offset).toInt() - bottomSheetDragHandleView.height
+        // ----
+        bottomSheetContentView.layoutParams = lp
+
+        bottomSheetContentView.y = offset
     }
 
     private fun collapseBusList() {
@@ -540,7 +590,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 //
 //        TransitionManager.beginDelayedTransition(view as ViewGroup, transform)
 //    }
-
+//
 //    private fun hideStopFragment(view: View) {
 //        val transform = MaterialContainerTransform().apply {
 //            startView = stopFragmentContainer
@@ -595,160 +645,5 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
         val keyboardManager = requireActivity().getSystemService(InputMethodManager::class.java)
         keyboardManager.hideSoftInputFromWindow(view.windowToken, 0)
-    }
-
-    private var hasTestData = false
-
-    private fun provideTestData() {
-        if (hasTestData) return
-        hasTestData = true
-
-        val stops = setOf(
-            BusStop(
-                "stopId0",
-                "stopCode0",
-                "Stop 1",
-                randomLocation(),
-                setOf("lineId2", "lineId5")
-            ),
-            BusStop(
-                "stopId1",
-                "stopCode1",
-                "Stop 2",
-                randomLocation(),
-                setOf("lineId0", "lineId4", "lineId7")
-            ),
-            BusStop(
-                "stopId2",
-                "stopCode2",
-                "Stop 3",
-                randomLocation(),
-                setOf("lineId1", "lineId6")
-            ),
-            BusStop(
-                "stopId3",
-                "stopCode3",
-                "Stop 4",
-                randomLocation(),
-                setOf("lineId0", "lineId6")
-            ),
-            BusStop(
-                "stopId4",
-                "stopCode4",
-                "Stop 5",
-                randomLocation(),
-                setOf("lineId8", "lineId1")
-            ),
-            BusStop(
-                "stopId5",
-                "stopCode5",
-                "Stop 6",
-                randomLocation(),
-                setOf("lineId11", "lineId9")
-            ),
-            BusStop(
-                "stopId6",
-                "stopCode6",
-                "Stop 7",
-                randomLocation(),
-                setOf("lineId3", "lineId10")
-            ),
-            BusStop(
-                "stopId7",
-                "stopCode7",
-                "Stop 8",
-                randomLocation(),
-                setOf("lineId7", "lineId3")
-            ),
-            BusStop(
-                "stopId8",
-                "stopCode8",
-                "Stop 9",
-                randomLocation(),
-                setOf("lineId9", "lineId11")
-            ),
-        )
-
-        val lines = setOf(
-            BusLine("lineId0", "X10", setOf(), setOf(""), setOf("stopId1", "stopId3")),
-            BusLine("lineId1", "2A", setOf(), setOf(""), setOf("stopId2", "stopId4")),
-            BusLine("lineId2", "2", setOf(), setOf(""), setOf("stopId0")),
-            BusLine("lineId3", "9X", setOf(), setOf(""), setOf("stopId6", "stopId7")),
-            BusLine("lineId4", "4W", setOf(), setOf(""), setOf("stopId1")),
-            BusLine("lineId5", "Y2", setOf(), setOf(""), setOf("stopId5")),
-            BusLine("lineId6", "91", setOf(), setOf(""), setOf("stopId2", "stopId3")),
-            BusLine("lineId7", "134", setOf(), setOf(""), setOf("stopId1", "stopId7")),
-            BusLine("lineId8", "43", setOf(), setOf(""), setOf("stopId4")),
-            BusLine("lineId9", "W10", setOf(), setOf(""), setOf("stopId5", "stopId8")),
-            BusLine("lineId10", "69", setOf(), setOf(""), setOf("stopId6")),
-            BusLine("lineId11", "261", setOf(), setOf(""), setOf("stopId5", "stopId8")),
-        )
-
-        val routes =
-            lines.map {
-                val lineRoutes = BusLineRoutes(
-                    it.id, setOf(
-                        BusLineRoute(
-                            "routeId0",
-                            "Muswell Hill to Archway",
-                            "0",
-                            "Muswell Hill Broadway",
-                            "0",
-                            "Archway Station",
-                            BusLineRoute.Direction.OUTBOUND,
-                            arrayOf()
-                        ),
-                        BusLineRoute(
-                            "routeId1",
-                            "Archway to Muswell Hill",
-                            "0",
-                            "Archway Station",
-                            "0",
-                            "Muswell Hill Broadway",
-                            BusLineRoute.Direction.INBOUND,
-                            arrayOf()
-                        ),
-                        BusLineRoute(
-                            "routeId2",
-                            "Muswell Hill to North Finchley",
-                            "0",
-                            "Muswell Hill Broadway",
-                            "0",
-                            "Woodhouse College",
-                            BusLineRoute.Direction.OUTBOUND,
-                            arrayOf()
-                        ),
-                        BusLineRoute(
-                            "routeId3",
-                            "North Finchely to Muswell Hill",
-                            "0",
-                            "Woodhouse College",
-                            "0",
-                            "Muswell Hill Broadway",
-                            BusLineRoute.Direction.INBOUND,
-                            arrayOf()
-                        ),
-                    )
-                )
-
-                val routeIds = lineRoutes.routes.map { it.id }.toSet()
-
-                it.routes = routeIds
-
-                lineRoutes
-            }.toSet()
-
-        busStopsViewModel.debugSet(stops)
-        busLinesViewModel.debugSet(lines)
-        busRoutesViewModel.debugSet(routes)
-    }
-
-    private fun randomLocation(): LatLngPoint {
-        val bounds = Locality.COVENTRY.location
-
-        val rLat = Random.nextDouble(bounds.southwest.lat, bounds.northeast.lat)
-        val rLng = Random.nextDouble(bounds.southwest.lng, bounds.northeast.lng)
-
-        return LatLngPoint(rLat, rLng)
     }
 }

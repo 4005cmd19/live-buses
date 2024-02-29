@@ -2,10 +2,12 @@ package com.cmd.myapplication
 
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup.MarginLayoutParams
 import android.widget.Button
 import android.widget.TextView
+import androidx.activity.addCallback
 import androidx.core.view.OnApplyWindowInsetsListener
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -46,14 +48,25 @@ class StopFragment : Fragment(R.layout.fragment_stop) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        requireActivity().onBackPressedDispatcher.addCallback(this) {
+            navigateUp()
+        }
+
         sharedElementEnterTransition = MaterialContainerTransform().apply {
             drawingViewId = R.id.fragment_container
-            duration = 5000
+            duration = 500
+            startDelay = 500
             scrimColor = Color.TRANSPARENT
             containerColor = Color.TRANSPARENT
             startContainerColor = Color.TRANSPARENT
             endContainerColor = Color.TRANSPARENT
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        Log.e("STOP", "resume")
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -91,8 +104,12 @@ class StopFragment : Fragment(R.layout.fragment_stop) {
         }.attach()
 
         closeButton.setOnClickListener {
-            nearbyBusesViewModel.selectedBusStop.value = null
-            findNavController().navigateUp()
+            navigateUp()
         }
+    }
+
+    private fun navigateUp() {
+        nearbyBusesViewModel.selectedBusStop.value = null
+        findNavController().navigateUp()
     }
 }

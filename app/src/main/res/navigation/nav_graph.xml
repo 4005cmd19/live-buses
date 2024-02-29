@@ -13,7 +13,10 @@
 
         <action
             android:id="@+id/action_stopFragment_to_mainFragment"
-            app:destination="@id/mainFragment" />
+            app:destination="@id/mainFragment"
+            app:popUpTo="@id/mainFragment"
+            app:popUpToSaveState="true"
+            app:popUpToInclusive="true"/>
         <argument
             android:name="stopId"
             app:argType="string"
@@ -28,6 +31,7 @@
         tools:layout="@layout/fragment_main">
         <action
             android:id="@+id/action_mainFragment_to_stopFragment"
+            app:restoreState="true"
             app:destination="@id/stopFragment">
         </action>
     </fragment>

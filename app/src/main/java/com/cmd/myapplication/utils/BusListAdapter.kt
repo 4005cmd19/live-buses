@@ -56,6 +56,10 @@ class BusListAdapter(
             LayoutInflater.from(parent.context)
                 .inflate(R.layout.compact_bus_list_item, parent, false)
 
+//        view.layoutParams = RecyclerView.LayoutParams(-2, view.layoutParams.height)
+
+//        Log.e("LP", "lp - ${view.layoutParams.width} ${view.layoutParams.height}")
+
         view.updateLayoutParams<MarginLayoutParams> {
             if (viewType == ViewHolder.Type.START) {
                 leftMargin = 16.toDp(view.context)

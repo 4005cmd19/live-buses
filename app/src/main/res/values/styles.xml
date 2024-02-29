@@ -1,4 +1,9 @@
 <resources>
     <style name="RecenterButton" parent="Widget.Material3.Button.TonalButton">
     </style>
+
+    <style name="Tag">
+        <item name="backgroundColor">?attr/colorPrimary</item>
+        <item name="foregroundColor">?attr/colorOnPrimary</item>
+    </style>
 </resources>

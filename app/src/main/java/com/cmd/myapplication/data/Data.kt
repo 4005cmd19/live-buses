@@ -1,5 +1,6 @@
 package com.cmd.myapplication.data
 
+import android.util.Log
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -27,7 +28,7 @@ enum class Locality(val location: LatLngRect) {
         )
     ),
 
-    NOT_FOUND(LatLngRect(LatLngPoint(0.0, 0.0), LatLngPoint(0.0, 0.0)))
+    NOT_FOUND(LatLngRect(LatLngPoint(0.0, 0.0), LatLngPoint(0.0, 0.0)));
 }
 
 data class LatLngPoint(
@@ -39,14 +40,27 @@ data class LatLngPoint(
             return false
         }
 
+        Log.e("EQ", "this=(${this.lat.toFloat()}, ${this.lng.toFloat()}) other=(${other.lat.toFloat()}, ${other.lng.toFloat()}})")
+
         return this.lat.toFloat() == other.lat.toFloat() && this.lng.toFloat() == other.lng.toFloat()
     }
+
+    fun approxEquals (other: LatLngPoint, epsilon: Double = 1e-2): Boolean = (other - this) <= epsilon
+
     operator fun minus(latLngPoint: LatLngPoint): Double {
         val dx = abs(this.lat - latLngPoint.lat)
         val dy = abs(this.lng - latLngPoint.lng)
 
         return sqrt(dx * dx + dy * dy)
     }
+}
+
+infix fun Number.isAlmost (other: Number) {
+
+}
+
+fun test () {
+    0 isAlmost 1
 }
 
 data class LatLngRect(

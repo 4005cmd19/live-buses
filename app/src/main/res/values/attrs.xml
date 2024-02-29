@@ -1,7 +1,17 @@
 <resources>
+    <attr name="tagStyle" format="reference"/>
+
     <declare-styleable name="AppWidgetAttrs">
         <attr name="appWidgetPadding" format="dimension" />
         <attr name="appWidgetInnerRadius" format="dimension" />
         <attr name="appWidgetRadius" format="dimension" />
+    </declare-styleable>
+
+    <declare-styleable name="Tag">
+        <attr name="text" format="string"/>
+        <attr name="icon" format="reference"/>
+
+        <attr name="backgroundColor"/>
+        <attr name="foregroundColor" format="reference"/>
     </declare-styleable>
 </resources>

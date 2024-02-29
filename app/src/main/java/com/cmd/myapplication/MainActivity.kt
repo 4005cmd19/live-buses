@@ -14,7 +14,14 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker.PERMISSION_GRANTED
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
+import com.cmd.myapplication.data.BusLine
+import com.cmd.myapplication.data.BusLineRoute
+import com.cmd.myapplication.data.BusLineRoutes
+import com.cmd.myapplication.data.BusStop
+import com.cmd.myapplication.data.LatLngPoint
+import com.cmd.myapplication.data.Locality
 import com.cmd.myapplication.data.viewModels.BusLinesViewModel
+import com.cmd.myapplication.data.viewModels.BusRoutesViewModel
 import com.cmd.myapplication.data.viewModels.BusStopsViewModel
 import com.cmd.myapplication.data.viewModels.DeviceLocationViewModel
 import com.cmd.myapplication.data.viewModels.NearbyBusesViewModel
@@ -24,6 +31,7 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
+import kotlin.random.Random
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -36,6 +44,7 @@ class MainActivity : AppCompatActivity() {
     val busStopsViewModel: BusStopsViewModel by viewModels { BusStopsViewModel.Factory }
     val busLinesViewModel: BusLinesViewModel by viewModels { BusLinesViewModel.Factory }
     val nearbyBusesViewModel: NearbyBusesViewModel by viewModels { NearbyBusesViewModel.Factory }
+    private val busRoutesViewModel: BusRoutesViewModel by viewModels { BusRoutesViewModel.Factory }
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var navController: NavController
@@ -45,6 +54,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        provideTestData()
 
         // get view
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -154,5 +165,160 @@ class MainActivity : AppCompatActivity() {
         }
 
         client.requestLocationUpdates(locationRequest, callback, Looper.getMainLooper())
+    }
+
+    private var hasTestData = false
+
+    private fun provideTestData() {
+        if (hasTestData) return
+        hasTestData = true
+
+        val stops = setOf(
+            BusStop(
+                "stopId0",
+                "stopCode0",
+                "Stop 1",
+                randomLocation(),
+                setOf("lineId2", "lineId5")
+            ),
+            BusStop(
+                "stopId1",
+                "stopCode1",
+                "Stop 2",
+                randomLocation(),
+                setOf("lineId0", "lineId4", "lineId7")
+            ),
+            BusStop(
+                "stopId2",
+                "stopCode2",
+                "Stop 3",
+                randomLocation(),
+                setOf("lineId1", "lineId6")
+            ),
+            BusStop(
+                "stopId3",
+                "stopCode3",
+                "Stop 4",
+                randomLocation(),
+                setOf("lineId0", "lineId6")
+            ),
+            BusStop(
+                "stopId4",
+                "stopCode4",
+                "Stop 5",
+                randomLocation(),
+                setOf("lineId8", "lineId1")
+            ),
+            BusStop(
+                "stopId5",
+                "stopCode5",
+                "Stop 6",
+                randomLocation(),
+                setOf("lineId11", "lineId9")
+            ),
+            BusStop(
+                "stopId6",
+                "stopCode6",
+                "Stop 7",
+                randomLocation(),
+                setOf("lineId3", "lineId10")
+            ),
+            BusStop(
+                "stopId7",
+                "stopCode7",
+                "Stop 8",
+                randomLocation(),
+                setOf("lineId7", "lineId3")
+            ),
+            BusStop(
+                "stopId8",
+                "stopCode8",
+                "Stop 9",
+                randomLocation(),
+                setOf("lineId9", "lineId11")
+            ),
+        )
+
+        val lines = setOf(
+            BusLine("lineId0", "X10", setOf(), setOf(""), setOf("stopId1", "stopId3")),
+            BusLine("lineId1", "2A", setOf(), setOf(""), setOf("stopId2", "stopId4")),
+            BusLine("lineId2", "2", setOf(), setOf(""), setOf("stopId0")),
+            BusLine("lineId3", "9X", setOf(), setOf(""), setOf("stopId6", "stopId7")),
+            BusLine("lineId4", "4W", setOf(), setOf(""), setOf("stopId1")),
+            BusLine("lineId5", "Y2", setOf(), setOf(""), setOf("stopId5")),
+            BusLine("lineId6", "91", setOf(), setOf(""), setOf("stopId2", "stopId3")),
+            BusLine("lineId7", "134", setOf(), setOf(""), setOf("stopId1", "stopId7")),
+            BusLine("lineId8", "43", setOf(), setOf(""), setOf("stopId4")),
+            BusLine("lineId9", "W10", setOf(), setOf(""), setOf("stopId5", "stopId8")),
+            BusLine("lineId10", "69", setOf(), setOf(""), setOf("stopId6")),
+            BusLine("lineId11", "261", setOf(), setOf(""), setOf("stopId5", "stopId8")),
+        )
+
+        val routes =
+            lines.map {
+                val lineRoutes = BusLineRoutes(
+                    it.id, setOf(
+                        BusLineRoute(
+                            "routeId0",
+                            "Muswell Hill to Archway",
+                            "0",
+                            "Muswell Hill Broadway",
+                            "0",
+                            "Archway Station",
+                            BusLineRoute.Direction.OUTBOUND,
+                            arrayOf()
+                        ),
+                        BusLineRoute(
+                            "routeId1",
+                            "Archway to Muswell Hill",
+                            "0",
+                            "Archway Station",
+                            "0",
+                            "Muswell Hill Broadway",
+                            BusLineRoute.Direction.INBOUND,
+                            arrayOf()
+                        ),
+                        BusLineRoute(
+                            "routeId2",
+                            "Muswell Hill to North Finchley",
+                            "0",
+                            "Muswell Hill Broadway",
+                            "0",
+                            "Woodhouse College",
+                            BusLineRoute.Direction.OUTBOUND,
+                            arrayOf()
+                        ),
+                        BusLineRoute(
+                            "routeId3",
+                            "North Finchely to Muswell Hill",
+                            "0",
+                            "Woodhouse College",
+                            "0",
+                            "Muswell Hill Broadway",
+                            BusLineRoute.Direction.INBOUND,
+                            arrayOf()
+                        ),
+                    )
+                )
+
+                val routeIds = lineRoutes.routes.map { it.id }.toSet()
+
+                it.routes = routeIds
+
+                lineRoutes
+            }.toSet()
+
+        busStopsViewModel.debugSet(stops)
+        busLinesViewModel.debugSet(lines)
+        busRoutesViewModel.debugSet(routes)
+    }
+
+    private fun randomLocation(): LatLngPoint {
+        val bounds = Locality.COVENTRY.location
+
+        val rLat = Random.nextDouble(bounds.southwest.lat, bounds.northeast.lat)
+        val rLng = Random.nextDouble(bounds.southwest.lng, bounds.northeast.lng)
+
+        return LatLngPoint(rLat, rLng)
     }
 }
