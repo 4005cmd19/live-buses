@@ -640,18 +640,18 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         )
 
         val lines = setOf(
-            BusLine("lineId0", "X10", setOf(), setOf(""), setOf("stopId1", "stopId3")),
-            BusLine("lineId1", "2A", setOf(), setOf(""), setOf("stopId2", "stopId4")),
-            BusLine("lineId2", "2", setOf(), setOf(""), setOf("stopId0")),
-            BusLine("lineId3", "9X", setOf(), setOf(""), setOf("stopId6", "stopId7")),
-            BusLine("lineId4", "4W", setOf(), setOf(""), setOf("stopId1")),
-            BusLine("lineId5", "Y2", setOf(), setOf(""), setOf("stopId5")),
-            BusLine("lineId6", "91", setOf(), setOf(""), setOf("stopId2", "stopId3")),
-            BusLine("lineId7", "134", setOf(), setOf(""), setOf("stopId1", "stopId7")),
-            BusLine("lineId8", "43", setOf(), setOf(""), setOf("stopId4")),
-            BusLine("lineId9", "W10", setOf(), setOf(""), setOf("stopId5", "stopId8")),
-            BusLine("lineId10", "69", setOf(), setOf(""), setOf("stopId6")),
-            BusLine("lineId11", "261", setOf(), setOf(""), setOf("stopId5", "stopId8")),
+            BusLine("lineId0", "X10", setOf(), setOf("stopId1", "stopId3"), setOf()),
+            BusLine("lineId1", "2A", setOf(), setOf("stopId2", "stopId4"), setOf()),
+            BusLine("lineId2", "2", setOf(), setOf("stopId0"), setOf()),
+            BusLine("lineId3", "9X", setOf(), setOf("stopId6", "stopId7"), setOf()),
+            BusLine("lineId4", "4W", setOf(), setOf("stopId1"), setOf()),
+            BusLine("lineId5", "Y2", setOf(), setOf("stopId5"), setOf()),
+            BusLine("lineId6", "91", setOf(), setOf("stopId2", "stopId3"), setOf()),
+            BusLine("lineId7", "134", setOf(), setOf("stopId1", "stopId7"), setOf()),
+            BusLine("lineId8", "43", setOf(), setOf("stopId4"), setOf()),
+            BusLine("lineId9", "W10", setOf(), setOf("stopId5", "stopId8"), setOf()),
+            BusLine("lineId10", "69", setOf(), setOf("stopId6"), setOf()),
+            BusLine("lineId11", "261", setOf(), setOf("stopId5", "stopId8"), setOf()),
         )
 
         val routes =

@@ -2,6 +2,7 @@ package com.cmd.myapplication
 
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup.MarginLayoutParams
 import android.widget.Button
@@ -27,11 +28,8 @@ import com.google.android.material.tabs.TabLayoutMediator
 import com.google.android.material.transition.MaterialContainerTransform
 import com.google.android.material.transition.MaterialFade
 
-/**
- * A simple [Fragment] subclass.
- * Use the [StopFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
+const val TAG = "StopFragment"
+
 class StopFragment : Fragment(R.layout.fragment_stop) {
     private val args: StopFragmentArgs by navArgs()
 
@@ -120,6 +118,8 @@ class StopFragment : Fragment(R.layout.fragment_stop) {
         lineViewPager = view.findViewById(R.id.line_view_pager)
 
         lineViewPagerAdapter = LinePagerAdapter(fragment = this)
+
+        lineViewPager.offscreenPageLimit = 100
         lineViewPager.adapter = lineViewPagerAdapter
 
         val stop = busStopsViewModel.busStops.value?.find { it.id == args.stopId }
@@ -128,9 +128,19 @@ class StopFragment : Fragment(R.layout.fragment_stop) {
         val lines = busLinesViewModel.busLines.value?.filter { it.stops.contains(stop?.id) }
         val lineNames = lines?.map { it.displayName }
 
+        Log.w(TAG, "stopId=${args.stopId} lineId=${args.lineId} lines=${lineNames?.joinToString()}")
+
+        lineViewPagerAdapter.lineIds.addAll(lines?.map { it.id } ?: emptyList())
+        lineViewPagerAdapter.notifyItemRangeInserted(0, lines?.size ?: 0)
+
         TabLayoutMediator(tabLayout, lineViewPager) { tab, position ->
             tab.text = lineNames?.get(position)
+            Log.e(TAG, "setting tab text - $position")
         }.attach()
+
+        if (args.lineId != null) {
+            tabLayout.getTabAt(lines?.indexOfFirst { it.id == args.lineId } ?: 0)?.select()
+        }
 
         closeButton.setOnClickListener {
             findNavController().navigateUp()

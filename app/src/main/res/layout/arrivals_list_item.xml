@@ -9,6 +9,7 @@
         android:id="@+id/destination_name_view"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"/>
 
@@ -16,6 +17,7 @@
         android:id="@+id/route_name_view"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
         app:layout_constraintTop_toBottomOf="@id/destination_name_view"
         app:layout_constraintLeft_toLeftOf="parent"/>
 
@@ -23,6 +25,7 @@
         android:id="@+id/arrival_time_view"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintRight_toRightOf="parent"/>

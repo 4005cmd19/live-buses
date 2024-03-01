@@ -1,6 +1,7 @@
 package com.cmd.myapplication
 
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -23,6 +24,8 @@ class LineFragment : Fragment(R.layout.fragment_line) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         arrivalsListView = view.findViewById(R.id.arrivals_list_view)
         arrivalsListView.adapter = arrivalsListAdapter
+
+        Log.e("StopFragment", "view created")
 
         val lineId = arguments?.takeIf { it.containsKey("lineId") }?.getString("lineId")
 
