@@ -69,7 +69,7 @@ class BusListAdapter(
         holder.apply {
             lineNameView.text = data.line
             stopNameView.text = data.stop
-            destinationNameView.text = data.destination.toString() + " long ass text to fill the text view aaaaaa"
+            destinationNameView.text = data.destination
             arrivalTimeView.text = busList[position].arrivalTime
         }
 
