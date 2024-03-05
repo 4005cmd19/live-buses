@@ -51,6 +51,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:backgroundTint="?attr/colorSurfaceContainer"
+            app:paddingBottomSystemWindowInsets="false"
             app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
             <com.google.android.material.bottomsheet.BottomSheetDragHandleView
@@ -156,6 +157,5 @@
             app:layout_constraintBottom_toBottomOf="@id/search_bar"
             app:layout_constraintLeft_toLeftOf="@id/search_bar"
             app:layout_constraintTop_toTopOf="@id/search_bar" />
-
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

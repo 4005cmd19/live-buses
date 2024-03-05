@@ -23,10 +23,7 @@ data class BusData(
 
 class BusListAdapter(
     val busList: MutableList<BusData> = mutableListOf(),
-) : RecyclerView.Adapter<BusListAdapter.ViewHolder>() {
-
-    private var onExpandListener: OnExpandListener? = null
-
+) : ListAdapter<BusData, BusListAdapter.ViewHolder>() {
     class ViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
         object Type {
             const val START = 0
@@ -34,17 +31,10 @@ class BusListAdapter(
             const val END = 2
         }
 
-        val lineNameView: TextView
-        val stopNameView: TextView
-        val destinationNameView: TextView
-        val arrivalTimeView: TextView
-
-        init {
-            lineNameView = view.findViewById(R.id.line_name_view)
-            stopNameView = view.findViewById(R.id.stop_name_view)
-            destinationNameView = view.findViewById(R.id.destination_name_view)
-            arrivalTimeView = view.findViewById(R.id.arrival_time_view)
-        }
+        val lineNameView: Tag = view.findViewById(R.id.line_name_view)
+        val stopNameView: TextView = view.findViewById(R.id.stop_name_view)
+        val destinationNameView: TextView = view.findViewById(R.id.destination_name_view)
+        val arrivalTimeView: TextView = view.findViewById(R.id.arrival_time_view)
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -79,25 +69,26 @@ class BusListAdapter(
         holder.apply {
             lineNameView.text = data.line
             stopNameView.text = data.stop
-            destinationNameView.text = data.destination
+            destinationNameView.text = data.destination.toString() + " long ass text to fill the text view aaaaaa"
             arrivalTimeView.text = busList[position].arrivalTime
         }
 
         Log.e("TRANS", "name - ${holder.view.transitionName}")
 
-        holder.view.transitionName = "expand_stop_transition_${data.stopId}_${data.lineId}_${data.destination}"
-        holder.view.setOnClickListener { onExpandListener?.onExpand(holder.view, position, data) }
-    }
-
-    fun setOnExpandListener(onExpandListener: OnExpandListener?) {
-        this.onExpandListener = onExpandListener
+        holder.view.transitionName =
+            "expand_stop_transition_${data.stopId}_${data.lineId}_${data.destination}"
+        holder.view.setOnClickListener {
+            Log.e(TAG, "onClick - onExpandListener=${onExpandListener}")
+            onExpandListener?.onExpand(holder.view, position, data)
+        }
     }
 
     override fun getItemCount(): Int {
         return busList.size
     }
+
+    companion object {
+        const val TAG = "BusListAdapter"
+    }
 }
 
-fun interface OnExpandListener {
-    fun onExpand(view: View, position: Int, data: BusData)
-}

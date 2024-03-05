@@ -61,6 +61,7 @@
                 app:tabIndicator="@drawable/tab_indicator"
                 app:tabIndicatorFullWidth="true"
                 app:tabIndicatorGravity="stretch"
+                android:layout_marginTop="16dp"
                 app:tabMode="auto"
                 app:tabSelectedTextColor="?attr/colorOnPrimary"
                 app:tabTextColor="?attr/colorOnSurface" />

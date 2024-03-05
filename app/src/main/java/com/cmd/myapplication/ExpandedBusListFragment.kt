@@ -12,7 +12,7 @@ import com.cmd.myapplication.data.viewModels.BusRoutesViewModel
 import com.cmd.myapplication.data.viewModels.BusStopsViewModel
 import com.cmd.myapplication.data.viewModels.NearbyBusesViewModel
 import com.cmd.myapplication.utils.BusStopData
-import com.cmd.myapplication.utils.ExpandedBusListAdapter
+import com.cmd.myapplication.utils.BusStopListAdapter
 
 /**
  * A simple [Fragment] subclass.
@@ -29,7 +29,7 @@ class ExpandedBusListFragment : Fragment(R.layout.fragment_expanded_bus_list) {
     private lateinit var bottomSheetHeadingView: TextView
     private lateinit var expandedBusListView: RecyclerView
 
-    private val busListAdapter = ExpandedBusListAdapter()
+    private val busListAdapter = BusStopListAdapter()
 
     private var expandedView: View? = null
 
@@ -41,7 +41,7 @@ class ExpandedBusListFragment : Fragment(R.layout.fragment_expanded_bus_list) {
 
         expandedBusListView.adapter = busListAdapter
 
-        busListAdapter.busList.addAll(
+        busListAdapter.busStops.addAll(
             arrayOf(
                 BusStopData(
                     "id0",
@@ -71,21 +71,21 @@ class ExpandedBusListFragment : Fragment(R.layout.fragment_expanded_bus_list) {
                 BusStopData(it.id, it.displayName, lines ?: emptyList())
             }
 
-            busListAdapter.busList.clear()
-            busListAdapter.busList.addAll(data)
+            busListAdapter.busStops.clear()
+            busListAdapter.busStops.addAll(data)
             busListAdapter.notifyDataSetChanged()
         }
 
-        busListAdapter.onExpand { view, stopId ->
-            expandedView?.transitionName = null
-            expandedView?.findViewById<TextView>(R.id.stop_name_view)?.transitionName = null
-
-            view.transitionName = "expand_stop_transition"
-            view.findViewById<TextView>(R.id.stop_name_view).transitionName =
-                "translate_stop_name_view"
-            expandedView = view
-
-            nearbyBusesViewModel.selectedBusStop.value = stopId to view
-        }
+//        busListAdapter.onExpand { view, stopId ->
+//            expandedView?.transitionName = null
+//            expandedView?.findViewById<TextView>(R.id.stop_name_view)?.transitionName = null
+//
+//            view.transitionName = "expand_stop_transition"
+//            view.findViewById<TextView>(R.id.stop_name_view).transitionName =
+//                "translate_stop_name_view"
+//            expandedView = view
+//
+//            nearbyBusesViewModel.selectedBusStop.value = stopId to view
+//        }
     }
 }

@@ -1,35 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".BusListFragment">
 
-    <TextView
-        android:id="@+id/bottom_sheet_heading_view"
-        style="@style/TextAppearance.Material3.HeadlineSmall"
-        app:layout_constraintTop_toTopOf="parent"
+    <com.cmd.myapplication.utils.ScrollableHost
+        android:id="@+id/container"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:text="@string/bottom_sheet_heading" />
+        android:layout_height="match_parent">
 
-    <androidx.coordinatorlayout.widget.CoordinatorLayout
-        android:id="@+id/bus_list_container"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/bottom_sheet_heading_view"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="8dp">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/compact_bus_list_view"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:overScrollMode="ifContentScrolls" />
-    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/bottom_sheet_heading_view"
+                style="@style/TextAppearance.Material3.HeadlineSmall"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:text="@string/bottom_sheet_heading"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/compact_bus_list_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal"
+                android:overScrollMode="ifContentScrolls"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                app:layout_constraintTop_toBottomOf="@id/bottom_sheet_heading_view" />
+
+            <TextView
+                android:id="@+id/bus_stops_heading_view"
+                style="@style/TextAppearance.Material3.HeadlineSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="16dp"
+                android:text="@string/bus_stops_heading"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/compact_bus_list_view" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/bus_stops_list_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="vertical"
+                app:layoutManager=".utils.ListViewLayoutManager"
+                app:layout_constraintTop_toBottomOf="@id/bus_stops_heading_view" />
+<!--                app:layout_constraintBottom_toBottomOf="parent"-->
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </com.cmd.myapplication.utils.ScrollableHost>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -32,7 +32,12 @@ class BottomSheetFragment : Fragment(R.layout.fragment_bottom_sheet) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         busListFragmentContainer = binding.busListFragmentContainer
+
+        busListFragmentContainer.setOnTouchListener { _, _ -> false }
+        view.setOnTouchListener { _, _ -> false }
     }
+
+    private var children = 0
 
     companion object {
 

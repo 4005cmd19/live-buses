@@ -10,6 +10,7 @@ class SharedViewModel : ViewModel() {
     val bottomSheetState: MutableLiveData<Int> by lazy { MutableLiveData(BottomSheetBehavior.STATE_COLLAPSED) }
     val bottomSheetOffset: MutableLiveData<Float> by lazy { MutableLiveData(0f) }
     val isBottomSheetDraggable: MutableLiveData<Boolean> by lazy { MutableLiveData(true) }
+    val isBottomSheetScrollable: MutableLiveData<Boolean> by lazy { MutableLiveData(false) }
 
     companion object {
         const val TAG = "SharedViewModel"

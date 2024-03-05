@@ -28,6 +28,7 @@ import com.cmd.myapplication.data.BusStop
 import com.cmd.myapplication.data.LatLngPoint
 import com.cmd.myapplication.data.LatLngRect
 import com.cmd.myapplication.data.Locality
+import com.cmd.myapplication.data.test.TestDataProvider
 import com.cmd.myapplication.data.viewModels.BusLinesViewModel
 import com.cmd.myapplication.data.viewModels.BusRoutesViewModel
 import com.cmd.myapplication.data.viewModels.BusStopsViewModel
@@ -87,7 +88,16 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         postponeEnterTransition()
         view.doOnPreDraw { startPostponedEnterTransition() }
 
-        provideTestData()
+//        provideTestData()
+
+        val testDataProvider = TestDataProvider(
+            busStopsViewModel,
+            busLinesViewModel,
+            busRoutesViewModel
+        )
+
+        val (stops, lines, routes) = testDataProvider.generateTestData()
+        testDataProvider.publishTestData(stops, lines, routes)
 
         exitTransition = MaterialFade().apply {
             duration =
@@ -113,6 +123,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         expandButton = view.findViewById(R.id.expand_bottom_sheet_button)
 
         // apply window insets to content view
+
+
         ViewCompat.setOnApplyWindowInsetsListener(view) { _, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
 
@@ -258,6 +270,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         var offset: Float? = null
         var bottom: Int? = null
 
+        bottomSheetFragmentContainer.setOnTouchListener { view, motionEvent -> false }
 
         bottomSheetBehavior.addBottomSheetCallback(object :
             BottomSheetBehavior.BottomSheetCallback() {
@@ -276,20 +289,14 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 //                    compactBusListFragmentContainer.visibility = View.VISIBLE
 //                    expandedBusListFragmentContainer.visibility = View.INVISIBLE
 
-                    bottomSheetBehavior.isDraggable = true
+//                    bottomSheetBehavior.isDraggable = true
+//                    sharedViewModel.isBottomSheetScrollable.value = false
                 } else if (newState == BottomSheetBehavior.STATE_EXPANDED) {
                     pState = newState
                     hasProcessedStateChange = false
 
-                    // TODO replaced with fragments
-//                    expandedBusListView.isNestedScrollingEnabled = true
-
-//                    compactBusListFragmentContainer.visibility = INVISIBLE
-//                    expandedBusListFragmentContainer.visibility = VISIBLE
-
-                    // ----
-
-                    bottomSheetBehavior.isDraggable = false
+//                    bottomSheetBehavior.isDraggable = false
+//                    sharedViewModel.isBottomSheetScrollable.value = true
 
                     backPressedCallback.isEnabled = true
                 } else if (newState == BottomSheetBehavior.STATE_HIDDEN) {
@@ -427,6 +434,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
         sharedViewModel.isBottomSheetDraggable.observe(viewLifecycleOwner) {
             bottomSheetBehavior.isDraggable = it
+            Log.e(TAG, "isDraggable - $it")
         }
     }
 

@@ -3,5 +3,6 @@
     android:shape="rectangle"
     android:useLevel="false">
 
-    <corners android:radius="24dp"/>
+    <corners android:radius="28dp"/>
+<!--    24dp-->
 </shape>

@@ -28,8 +28,6 @@ import com.google.android.material.tabs.TabLayoutMediator
 import com.google.android.material.transition.MaterialContainerTransform
 import com.google.android.material.transition.MaterialFade
 
-const val TAG = "StopFragment"
-
 class StopFragment : Fragment(R.layout.fragment_stop) {
     private val args: StopFragmentArgs by navArgs()
 
@@ -136,6 +134,14 @@ class StopFragment : Fragment(R.layout.fragment_stop) {
         TabLayoutMediator(tabLayout, lineViewPager) { tab, position ->
             tab.text = lineNames?.get(position)
             Log.e(TAG, "setting tab text - $position")
+
+            if (position == 0) {
+                Log.e(TAG, "updating first tab")
+                tab.view.layoutParams = MarginLayoutParams(-2, -2)
+                tab.view.updateLayoutParams<MarginLayoutParams> {
+                    marginStart = 64.toDp(context)
+                }
+            }
         }.attach()
 
         if (args.lineId != null) {
@@ -145,5 +151,9 @@ class StopFragment : Fragment(R.layout.fragment_stop) {
         closeButton.setOnClickListener {
             findNavController().navigateUp()
         }
+    }
+
+    companion object {
+        const val TAG = "StopFragment"
     }
 }

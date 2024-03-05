@@ -1,8 +1,11 @@
 package com.cmd.myapplication
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.widget.TextView
 import androidx.core.view.doOnPreDraw
 import androidx.fragment.app.Fragment
@@ -18,9 +21,15 @@ import com.cmd.myapplication.data.viewModels.DeviceLocationViewModel
 import com.cmd.myapplication.data.viewModels.NearbyBusesViewModel
 import com.cmd.myapplication.utils.BusData
 import com.cmd.myapplication.utils.BusListAdapter
+import com.cmd.myapplication.utils.BusStopData
+import com.cmd.myapplication.utils.BusStopListAdapter
+import com.cmd.myapplication.utils.ListViewLayoutManager
+import com.cmd.myapplication.utils.ScrollableHost
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.motion.MotionUtils
 import com.google.android.material.transition.MaterialFade
+import kotlin.math.abs
+import kotlin.math.sign
 
 /**
  * A simple [Fragment] subclass.
@@ -37,10 +46,13 @@ class BusListFragment : Fragment(R.layout.fragment_bus_list) {
     private val busLinesViewModel: BusLinesViewModel by activityViewModels { BusLinesViewModel.Factory }
     private val busRoutesViewModel: BusRoutesViewModel by activityViewModels { BusRoutesViewModel.Factory }
 
+    private lateinit var container: ScrollableHost
     private lateinit var bottomSheetHeadingView: TextView
     private lateinit var compactBusListView: RecyclerView
+    private lateinit var busStopsListView: RecyclerView
 
     private val busListAdapter = BusListAdapter()
+    private val busStopListAdapter = BusStopListAdapter()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,17 +82,28 @@ class BusListFragment : Fragment(R.layout.fragment_bus_list) {
         postponeEnterTransition()
         view.doOnPreDraw { startPostponedEnterTransition() }
 
+        container = view.findViewById(R.id.container)
         bottomSheetHeadingView = view.findViewById(R.id.bottom_sheet_heading_view)
         compactBusListView = view.findViewById(R.id.compact_bus_list_view)
+        busStopsListView = view.findViewById(R.id.bus_stops_list_view)
 
         compactBusListView.adapter = busListAdapter
+        busStopsListView.adapter = busStopListAdapter
+
+        val layoutManager = busStopsListView.layoutManager as ListViewLayoutManager
+        layoutManager.canScrollVertically = false
+//        container.isNestedScrollingEnabled = false
+
+//        handleScroll()
 
         sharedViewModel.isBottomSheetDraggable.value = true
+        sharedViewModel.isBottomSheetScrollable.observe(viewLifecycleOwner) {
+            Log.e(TAG, "isScrollable - $it")
+            container.isScrollable = true//it
+        }
 
         nearbyBusesViewModel.nearbyBusStops.observe(viewLifecycleOwner) {
-            busListAdapter.busList.clear()
-
-            val data = it.map {
+            val busData = it.map {
                 val lineId = it.lines.first()
 
                 val line = busLinesViewModel.busLines.value?.find { it.id == lineId }
@@ -97,28 +120,38 @@ class BusListFragment : Fragment(R.layout.fragment_bus_list) {
                 )
             }
 
+            val busStopsData = it.map {
+                val linesIds = it.lines.toList()
+                val lines = busLinesViewModel.busLines.value?.filter { linesIds.contains(it.id) }
+                    ?.map { it.displayName }
+                    ?.toList()
+
+                Log.e("NBVM", it.displayName)
+
+                BusStopData(it.id, it.displayName, lines ?: emptyList())
+            }
+
             busListAdapter.busList.clear()
-            busListAdapter.busList.addAll(data)
+            busListAdapter.busList.addAll(busData)
             busListAdapter.notifyDataSetChanged()
+
+            Log.e(TAG, busStopsData.joinToString())
+
+            busStopListAdapter.busStops.clear()
+            busStopListAdapter.busStops.addAll(busStopsData)
+            busStopListAdapter.notifyDataSetChanged()
         }
 
         busListAdapter.setOnExpandListener { itemView, _, data ->
-//            itemView.transitionName = "expand_stop_transition_${Random.nextInt()}"
-//            sharedViewModel.bottomSheetState.value = BottomSheetBehavior.STATE_EXPANDED
+            navigateToStopFragmentAnimated(itemView, data.stopId, data.lineId)
+        }
 
-//            findNavController().navigate(
-//                BusListFragmentDirections.actionBusListFragmentToStopFragment(
-//                    data.stopId,
-//                    data.lineId
-//                ),
-//                FragmentNavigatorExtras(itemView to "expand_stop_transition"),
-//            )
-
-            navigateToStopFragmentAnimated(itemView, data)
+        busStopListAdapter.setOnExpandListener { itemView, _, data ->
+            navigateToStopFragmentAnimated(itemView, data.id, null)
         }
     }
 
-    private fun navigateToStopFragmentAnimated (view: View, data: BusData) {
+    private fun navigateToStopFragmentAnimated(view: View, stopId: String, lineId: String?) {
         sharedViewModel.bottomSheetState.value = BottomSheetBehavior.STATE_EXPANDED
         sharedViewModel.isBottomSheetDraggable.value = false
 
@@ -129,23 +162,92 @@ class BusListFragment : Fragment(R.layout.fragment_bus_list) {
                     if (value == 1f) {
                         sharedViewModel.bottomSheetOffset.removeObserver(this)
                         Log.e("NAV", "postponed")
-                        navigateToStopFragment(view, data)
+                        navigateToStopFragment(view, stopId, lineId)
                     }
                 }
             })
-        }
-        else {
-            navigateToStopFragment(view, data)
+        } else {
+            navigateToStopFragment(view, stopId, lineId)
         }
     }
 
-    private fun navigateToStopFragment(view: View, data: BusData) {
+    private fun navigateToStopFragment(view: View, stopId: String, lineId: String?) {
         findNavController().navigate(
             BusListFragmentDirections.actionBusListFragmentToStopFragment(
-                data.stopId,
-                data.lineId
+                stopId,
+                lineId
             ),
             FragmentNavigatorExtras(view to "expand_stop_transition"),
         )
+    }
+
+    private fun disableTouch() {
+//        container.requestDisallowInterceptTouchEvent(true)
+//        container.isScrollable = false
+    }
+
+    private fun enableTouch() {
+//        container.requestDisallowInterceptTouchEvent(false)
+//        container.isScrollable = true
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun handleScroll() {
+//        requireView().setOnTouchListener { view, motionEvent -> false }
+//        busStopsListView.setOnTouchListener { _, _ -> false }
+//        busStopsListView.requestDisallowInterceptTouchEvent(true)
+//        compactBusListView.setOnTouchListener { _, _ -> false }
+//        compactBusListView.requestDisallowInterceptTouchEvent(true)
+
+        container.setOnScrollChangeListener { v, scrollX, scrollY, oldScrollX, oldScrollY ->
+            if (scrollY == 0 && container.isNestedScrollingEnabled) {
+                container.isNestedScrollingEnabled = false
+                sharedViewModel.isBottomSheetDraggable.value = true
+                disableTouch()
+            }
+        }
+
+        var oldY: Float? = null
+
+        // min dY for it to be considered a scroll attempt
+        val touchSlop = ViewConfiguration.get(requireContext()).scaledTouchSlop
+
+        // always return false as to not consume the event
+        container.setOnTouchListener { view, touchEvent ->
+            Log.e(TAG, "onTouch")
+            if (touchEvent.action == MotionEvent.ACTION_UP) {
+                oldY = null
+            }
+
+            if (touchEvent.action == MotionEvent.ACTION_MOVE) {
+                // on first touch
+                if (oldY == null) {
+                    oldY = touchEvent.y
+
+                    return@setOnTouchListener false
+                }
+
+                val dY = touchEvent.y - oldY!!
+
+                if (abs(dY) >= touchSlop) {
+                    val scrollDirection = -sign(dY)
+
+                    if (scrollDirection > 0 && !container.isNestedScrollingEnabled) {
+                        Log.e(TAG, "unlocked - dY=$dY sD=$scrollDirection")
+                        sharedViewModel.isBottomSheetDraggable.value = false
+                        container.isNestedScrollingEnabled = true
+                        enableTouch()
+                    }
+
+                    oldY = touchEvent.y
+                }
+            }
+
+            return@setOnTouchListener false
+        }
+    }
+
+    companion object {
+        const val TAG = "BusListFragment"
     }
 }

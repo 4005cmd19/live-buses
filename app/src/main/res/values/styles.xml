@@ -1,4 +1,39 @@
 <resources>
     <style name="RecenterButton" parent="Widget.Material3.Button.TonalButton">
     </style>
+
+    <style name="Tag">
+        <item name="backgroundColor">?attr/colorPrimary</item>
+        <item name="foregroundColor">?attr/colorOnPrimary</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.Material3.LargeComponent</item>
+    </style>
+
+    <style name="Tag.More" parent="Tag.End">
+        <item name="backgroundColor">?attr/colorSecondary</item>
+        <item name="foregroundColor">?attr/colorOnSecondary</item>
+    </style>
+
+    <style name="Tag.Start" parent="Tag">
+        <item name="shapeAppearance">@style/Tag.Start.ShapeAppearance</item>
+    </style>
+
+    <style name="Tag.Intermediate" parent="Tag">
+        <item name="shapeAppearance">@style/Tag.Intermediate.ShapeAppearance</item>
+    </style>
+
+    <style name="Tag.End" parent="Tag">
+        <item name="shapeAppearance">@style/Tag.End.ShapeAppearance</item>
+    </style>
+
+    <style name="Tag.Start.ShapeAppearance" parent="ShapeAppearance.Material3.LargeComponent">
+        <item name="cornerSizeTopRight">4dp</item>
+        <item name="cornerSizeBottomRight">4dp</item>
+    </style>
+
+    <style name="Tag.Intermediate.ShapeAppearance" parent="ShapeAppearance.Material3.Corner.ExtraSmall"/>
+
+    <style name="Tag.End.ShapeAppearance" parent="ShapeAppearance.Material3.LargeComponent">
+        <item name="cornerSizeTopLeft">4dp</item>
+        <item name="cornerSizeBottomLeft">4dp</item>
+    </style>
 </resources>
