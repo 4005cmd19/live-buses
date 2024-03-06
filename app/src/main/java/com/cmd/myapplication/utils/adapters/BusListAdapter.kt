@@ -1,4 +1,4 @@
-package com.cmd.myapplication.utils
+package com.cmd.myapplication.utils.adapters
 
 import android.util.Log
 import android.view.LayoutInflater
@@ -10,16 +10,7 @@ import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.RecyclerView
 import com.cmd.myapplication.R
 import com.cmd.myapplication.toDp
-
-data class BusData(
-    val stopId: String,
-    val lineId: String,
-
-    val line: CharSequence,
-    val stop: CharSequence,
-    val destination: CharSequence,
-    val arrivalTime: String,
-)
+import com.cmd.myapplication.utils.Tag
 
 class BusListAdapter(
     val busList: MutableList<BusData> = mutableListOf(),

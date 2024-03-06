@@ -1,4 +1,4 @@
-package com.cmd.myapplication.utils
+package com.cmd.myapplication.utils.adapters
 
 import android.view.LayoutInflater
 import android.view.View

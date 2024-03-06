@@ -12,6 +12,8 @@ class SharedViewModel : ViewModel() {
     val isBottomSheetDraggable: MutableLiveData<Boolean> by lazy { MutableLiveData(true) }
     val isBottomSheetScrollable: MutableLiveData<Boolean> by lazy { MutableLiveData(false) }
 
+    val isSearchFragmentVisible: MutableLiveData<Boolean> by lazy { MutableLiveData(false) }
+
     companion object {
         const val TAG = "SharedViewModel"
 

@@ -19,10 +19,10 @@ import com.cmd.myapplication.data.viewModels.BusRoutesViewModel
 import com.cmd.myapplication.data.viewModels.BusStopsViewModel
 import com.cmd.myapplication.data.viewModels.DeviceLocationViewModel
 import com.cmd.myapplication.data.viewModels.NearbyBusesViewModel
-import com.cmd.myapplication.utils.BusData
-import com.cmd.myapplication.utils.BusListAdapter
-import com.cmd.myapplication.utils.BusStopData
-import com.cmd.myapplication.utils.BusStopListAdapter
+import com.cmd.myapplication.utils.adapters.BusData
+import com.cmd.myapplication.utils.adapters.BusListAdapter
+import com.cmd.myapplication.utils.adapters.BusStopData
+import com.cmd.myapplication.utils.adapters.BusStopListAdapter
 import com.cmd.myapplication.utils.ListViewLayoutManager
 import com.cmd.myapplication.utils.ScrollableHost
 import com.google.android.material.bottomsheet.BottomSheetBehavior

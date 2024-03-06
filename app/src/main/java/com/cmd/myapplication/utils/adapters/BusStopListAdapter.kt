@@ -1,4 +1,4 @@
-package com.cmd.myapplication.utils
+package com.cmd.myapplication.utils.adapters
 
 import android.content.Context
 import android.util.TypedValue
@@ -14,16 +14,11 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.RecyclerView
 import com.cmd.myapplication.R
+import com.cmd.myapplication.utils.Tag
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.shape.ShapeAppearanceModel
 import kotlin.random.Random
 import kotlin.random.nextInt
-
-data class BusStopData(
-    val id: String,
-    val name: CharSequence,
-    val lines: List<String>,
-)
 
 class BusStopListAdapter(
     val busStops: MutableList<BusStopData> = mutableListOf(),

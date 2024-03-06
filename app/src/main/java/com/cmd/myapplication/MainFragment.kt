@@ -20,6 +20,8 @@ import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Observer
+import androidx.navigation.findNavController
 import androidx.transition.TransitionManager
 import com.cmd.myapplication.data.BusLine
 import com.cmd.myapplication.data.BusLineRoute
@@ -34,6 +36,7 @@ import com.cmd.myapplication.data.viewModels.BusRoutesViewModel
 import com.cmd.myapplication.data.viewModels.BusStopsViewModel
 import com.cmd.myapplication.data.viewModels.DeviceLocationViewModel
 import com.cmd.myapplication.data.viewModels.NearbyBusesViewModel
+import com.cmd.myapplication.data.viewModels.SearchViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
@@ -63,6 +66,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private val busRoutesViewModel: BusRoutesViewModel by activityViewModels { BusRoutesViewModel.Factory }
 
     private val nearbyBusStopsViewModel: NearbyBusesViewModel by activityViewModels { NearbyBusesViewModel.Factory }
+
+    private val searchViewModel: SearchViewModel by activityViewModels { SearchViewModel.Factory }
 
     private var shouldFollowDeviceLocation = true
 
@@ -210,6 +215,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
         }
 
+        bottomSheetFragmentContainer.findNavController().also { Log.e("NAV_CONTROLLER", "n - ${it.currentDestination?.displayName}") }
+
         searchBar.editText?.setOnClickListener { expandSearchBar() }
 
         searchBar.setStartIconOnClickListener {
@@ -236,6 +243,21 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
         searchBar.editText?.doOnTextChanged { text, start, before, count ->
             searchBar.isEndIconVisible = count > 0
+
+            Log.e(TAG, "count - $count")
+
+            val textSize = text?.length ?: 0
+            if (textSize > 0) {
+                searchViewModel.search(
+                    text.toString(),
+                    deviceLocationViewModel.currentLocation.value!!,
+                    Locality.COVENTRY.location,
+                )
+                navigateToStopFragment()
+            }
+            else {
+                sharedViewModel.isSearchFragmentVisible.value = false
+            }
 
             expandSearchBar()
         }
@@ -435,6 +457,23 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         sharedViewModel.isBottomSheetDraggable.observe(viewLifecycleOwner) {
             bottomSheetBehavior.isDraggable = it
             Log.e(TAG, "isDraggable - $it")
+        }
+    }
+
+    private fun navigateToStopFragment () {
+        if (bottomSheetBehavior.state != BottomSheetBehavior.STATE_EXPANDED) {
+            sharedViewModel.bottomSheetState.value = BottomSheetBehavior.STATE_EXPANDED
+            sharedViewModel.bottomSheetOffset.observe(viewLifecycleOwner, object : Observer<Float> {
+                override fun onChanged(value: Float) {
+                    if (value == 1f) {
+                        sharedViewModel.bottomSheetOffset.removeObserver(this)
+                        sharedViewModel.isSearchFragmentVisible.value = true
+                    }
+                }
+            })
+        }
+        else {
+            sharedViewModel.isSearchFragmentVisible.value = true
         }
     }
 

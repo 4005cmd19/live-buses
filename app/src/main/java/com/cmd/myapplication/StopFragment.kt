@@ -4,6 +4,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import android.view.ViewGroup.MarginLayoutParams
 import android.widget.Button
 import android.widget.TextView
@@ -21,7 +22,7 @@ import androidx.viewpager2.widget.ViewPager2
 import com.cmd.myapplication.data.viewModels.BusLinesViewModel
 import com.cmd.myapplication.data.viewModels.BusStopsViewModel
 import com.cmd.myapplication.data.viewModels.NearbyBusesViewModel
-import com.cmd.myapplication.utils.LinePagerAdapter
+import com.cmd.myapplication.utils.adapters.LinePagerAdapter
 import com.google.android.material.motion.MotionUtils
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
@@ -133,16 +134,23 @@ class StopFragment : Fragment(R.layout.fragment_stop) {
 
         TabLayoutMediator(tabLayout, lineViewPager) { tab, position ->
             tab.text = lineNames?.get(position)
-            Log.e(TAG, "setting tab text - $position")
+        }.attach()
 
-            if (position == 0) {
-                Log.e(TAG, "updating first tab")
-                tab.view.layoutParams = MarginLayoutParams(-2, -2)
-                tab.view.updateLayoutParams<MarginLayoutParams> {
-                    marginStart = 64.toDp(context)
+        // apply margins
+        tabLayout.getChildAt(0).let { it as ViewGroup }
+            .let {
+                it.getChildAt(0).apply {
+                    updateLayoutParams<MarginLayoutParams> {
+                        leftMargin = 16.toDp(context)
+                    }
+                }
+
+                it.getChildAt(it.childCount - 1).apply {
+                    updateLayoutParams<MarginLayoutParams> {
+                        rightMargin = 16.toDp(context)
+                    }
                 }
             }
-        }.attach()
 
         if (args.lineId != null) {
             tabLayout.getTabAt(lines?.indexOfFirst { it.id == args.lineId } ?: 0)?.select()

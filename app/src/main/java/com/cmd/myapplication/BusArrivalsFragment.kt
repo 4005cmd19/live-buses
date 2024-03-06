@@ -7,15 +7,15 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.RecyclerView
 import com.cmd.myapplication.data.viewModels.NearbyBusesViewModel
-import com.cmd.myapplication.utils.ArrivalData
-import com.cmd.myapplication.utils.ArrivalsListAdapter
+import com.cmd.myapplication.utils.adapters.ArrivalData
+import com.cmd.myapplication.utils.adapters.ArrivalsListAdapter
 
 /**
  * A simple [Fragment] subclass.
- * Use the [LineFragment.newInstance] factory method to
+ * Use the [BusArrivalsFragment.newInstance] factory method to
  * create an instance of this fragment.
  */
-class LineFragment : Fragment(R.layout.fragment_line) {
+class BusArrivalsFragment : Fragment(R.layout.fragment_bus_arrivals) {
     private val nearbyBusesViewModel: NearbyBusesViewModel by activityViewModels { NearbyBusesViewModel.Factory }
 
     private lateinit var arrivalsListView: RecyclerView

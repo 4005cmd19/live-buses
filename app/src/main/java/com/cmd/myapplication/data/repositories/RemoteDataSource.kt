@@ -5,8 +5,8 @@ import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt3.Mqtt3BlockingClient
 import java.util.UUID
 
-class RemoteDataSource {
-    private val client: Mqtt3BlockingClient =
+open class RemoteDataSource {
+    protected val client: Mqtt3BlockingClient =
         MqttClient.builder().useMqttVersion3().identifier(UUID.randomUUID().toString())
             .serverHost(HOST).serverPort(PORT).useSslWithDefaultConfig().buildBlocking()
 
@@ -19,6 +19,7 @@ class RemoteDataSource {
         client.toAsync().subscribeWith().topicFilter(topic).qos(MqttQos.AT_MOST_ONCE).callback {
             callback(it.topic.toString(), it.payloadAsBytes)
         }.send()
+//        CompletableFuture.supplyAsync { "" }.await()
     }
 
     fun stopListeningTo(topic: String) {

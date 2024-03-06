@@ -41,6 +41,7 @@ data class LatLngPoint(
 
         return this.lat.toFloat() == other.lat.toFloat() && this.lng.toFloat() == other.lng.toFloat()
     }
+
     operator fun minus(latLngPoint: LatLngPoint): Double {
         val dx = abs(this.lat - latLngPoint.lat)
         val dy = abs(this.lng - latLngPoint.lng)
@@ -58,6 +59,12 @@ data class LatLngRect(
                 && this.northeast.lat <= latLngPoint.lat
                 && this.southwest.lng >= latLngPoint.lng
                 && this.northeast.lng <= latLngPoint.lng
+
+    val center: LatLngPoint
+        get() = LatLngPoint(
+            northeast.lat - southwest.lat,
+            northeast.lng - southwest.lng
+        )
 }
 
 data class BusStop(
@@ -118,6 +125,26 @@ data class BusArrival(
     var scheduledTime: Long,
     var expectedTime: Long,
 )
+
+interface SearchResult
+
+data class StopSearchResult(
+    var stopId: String,
+    var lineIds: List<String>,
+) : SearchResult
+
+data class RouteSearchResult(
+    var lineId: String,
+    var routeId: String,
+    var operatorName: String,
+) : SearchResult
+
+data class PlaceSearchResult(
+    val id: String,
+    val name: String,
+    val shortName: String,
+    val distance: Int,
+) : SearchResult
 
 /*
 

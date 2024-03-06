@@ -11,8 +11,8 @@ import com.cmd.myapplication.data.viewModels.BusLinesViewModel
 import com.cmd.myapplication.data.viewModels.BusRoutesViewModel
 import com.cmd.myapplication.data.viewModels.BusStopsViewModel
 import com.cmd.myapplication.data.viewModels.NearbyBusesViewModel
-import com.cmd.myapplication.utils.BusStopData
-import com.cmd.myapplication.utils.BusStopListAdapter
+import com.cmd.myapplication.utils.adapters.BusStopData
+import com.cmd.myapplication.utils.adapters.BusStopListAdapter
 
 /**
  * A simple [Fragment] subclass.

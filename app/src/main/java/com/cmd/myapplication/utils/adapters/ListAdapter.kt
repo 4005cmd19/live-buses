@@ -1,6 +1,7 @@
-package com.cmd.myapplication.utils
+package com.cmd.myapplication.utils.adapters
 
 import androidx.recyclerview.widget.RecyclerView
+import com.cmd.myapplication.utils.OnExpandListener
 
 abstract class ListAdapter <T, VH: RecyclerView.ViewHolder> : RecyclerView.Adapter<VH> () {
     protected var onExpandListener: OnExpandListener<T>? = null
