@@ -1,9 +1,9 @@
 package com.cmd.myapplication.data.test
 
-import com.cmd.myapplication.data.repositories.RemoteDataSource
+import com.cmd.myapplication.data.adapters.MqttClientAdapter
 import com.hivemq.client.mqtt.datatypes.MqttQos
 
-class TestClient: RemoteDataSource() {
+class TestClient: MqttClientAdapter() {
     fun publish (topic: String, payload: ByteArray, retain: Boolean) {
         client.publishWith()
             .topic(topic)

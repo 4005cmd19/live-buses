@@ -1,6 +1,8 @@
 package com.cmd.myapplication
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
@@ -23,17 +25,9 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
 import androidx.navigation.findNavController
 import androidx.transition.TransitionManager
-import com.cmd.myapplication.data.BusLine
-import com.cmd.myapplication.data.BusLineRoute
-import com.cmd.myapplication.data.BusLineRoutes
-import com.cmd.myapplication.data.BusStop
 import com.cmd.myapplication.data.LatLngPoint
 import com.cmd.myapplication.data.LatLngRect
-import com.cmd.myapplication.data.Locality
-import com.cmd.myapplication.data.test.TestDataProvider
-import com.cmd.myapplication.data.viewModels.BusLinesViewModel
-import com.cmd.myapplication.data.viewModels.BusRoutesViewModel
-import com.cmd.myapplication.data.viewModels.BusStopsViewModel
+import com.cmd.myapplication.data.viewModels.BusDataViewModel
 import com.cmd.myapplication.data.viewModels.DeviceLocationViewModel
 import com.cmd.myapplication.data.viewModels.NearbyBusesViewModel
 import com.cmd.myapplication.data.viewModels.SearchViewModel
@@ -44,7 +38,6 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDragHandleView
 import com.google.android.material.textfield.TextInputLayout
 import com.google.android.material.transition.MaterialFade
-import kotlin.random.Random
 
 private const val DISPLAY_MAX_STOPS = 10
 
@@ -61,9 +54,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
     // provides the device's current location
     private val deviceLocationViewModel: DeviceLocationViewModel by activityViewModels { DeviceLocationViewModel.Factory }
-    private val busLinesViewModel: BusLinesViewModel by activityViewModels { BusLinesViewModel.Factory }
-    private val busStopsViewModel: BusStopsViewModel by activityViewModels { BusStopsViewModel.Factory }
-    private val busRoutesViewModel: BusRoutesViewModel by activityViewModels { BusRoutesViewModel.Factory }
+    private val busDataViewModel: BusDataViewModel by activityViewModels { BusDataViewModel.Factory }
 
     private val nearbyBusStopsViewModel: NearbyBusesViewModel by activityViewModels { NearbyBusesViewModel.Factory }
 
@@ -93,16 +84,13 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         postponeEnterTransition()
         view.doOnPreDraw { startPostponedEnterTransition() }
 
-//        provideTestData()
+//        val testDataProvider = TestDataProvider()
 
-        val testDataProvider = TestDataProvider(
-            busStopsViewModel,
-            busLinesViewModel,
-            busRoutesViewModel
-        )
-
-        val (stops, lines, routes) = testDataProvider.generateTestData()
-        testDataProvider.publishTestData(stops, lines, routes)
+//        val (stops, lines, routes) = testDataProvider.generateTestData()
+//        testDataProvider.publishTestData(
+//            busStopsViewModel, busLinesViewModel, busRoutesViewModel,
+//            stops, lines, routes
+//        )
 
         exitTransition = MaterialFade().apply {
             duration =
@@ -115,6 +103,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 5000//resources.getInteger(com.google.android.material.R.integer.m3_sys_motion_duration_long2).toLong()
             secondaryAnimatorProvider = null
         }
+
+        requestBusData()
 
         // content layout contains search bar and bus list
         // separated from rest of layout so that window insets can be applied to it and not the map view
@@ -215,7 +205,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
         }
 
-        bottomSheetFragmentContainer.findNavController().also { Log.e("NAV_CONTROLLER", "n - ${it.currentDestination?.displayName}") }
+//        bottomSheetFragmentContainer.findNavController()
 
         searchBar.editText?.setOnClickListener { expandSearchBar() }
 
@@ -248,15 +238,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
             val textSize = text?.length ?: 0
             if (textSize > 0) {
-                searchViewModel.search(
-                    text.toString(),
-                    deviceLocationViewModel.currentLocation.value!!,
-                    Locality.COVENTRY.location,
-                )
-                navigateToStopFragment()
-            }
-            else {
-                sharedViewModel.isSearchFragmentVisible.value = false
+                searchViewModel.search(text.toString())
+                navigateToStopFragmentAnimated()
             }
 
             expandSearchBar()
@@ -274,6 +257,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 if (text?.isEmpty() == true) {
                     searchBar.isStartIconVisible = false
                     appIconView.visibility = View.VISIBLE
+                } else if (text != null) {
+                    searchViewModel.search(text.toString(), false)
                 }
             }
 
@@ -460,22 +445,41 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
     }
 
-    private fun navigateToStopFragment () {
+    private fun navigateToStopFragment() {
+        if (bottomSheetFragmentContainer.findNavController().currentDestination?.id != R.id.searchFragment) {
+            bottomSheetFragmentContainer.findNavController()
+                .navigate(BottomSheetFragmentDirections.actionBottomSheetFragmentToSearchFragment())
+        }
+    }
+
+    private fun closeSearchFragment() {
+        if (bottomSheetFragmentContainer.findNavController().currentDestination?.id != R.id.bottomSheetFragment) {
+            bottomSheetFragmentContainer.findNavController()
+                .navigateUp()
+        }
+    }
+
+    private fun navigateToStopFragmentAnimated() {
         if (bottomSheetBehavior.state != BottomSheetBehavior.STATE_EXPANDED) {
             sharedViewModel.bottomSheetState.value = BottomSheetBehavior.STATE_EXPANDED
             sharedViewModel.bottomSheetOffset.observe(viewLifecycleOwner, object : Observer<Float> {
                 override fun onChanged(value: Float) {
                     if (value == 1f) {
                         sharedViewModel.bottomSheetOffset.removeObserver(this)
-                        sharedViewModel.isSearchFragmentVisible.value = true
+                        navigateToStopFragment()
                     }
                 }
             })
-        }
-        else {
-            sharedViewModel.isSearchFragmentVisible.value = true
+        } else {
+            navigateToStopFragment()
         }
     }
+
+    private fun closeSearchFragmentAnimated() = Handler(Looper.getMainLooper()).postDelayed(
+        {
+            closeSearchFragment()
+        }, 200
+    )
 
     private fun collapseBusList() {
         if (isBusListExpanded) {
@@ -614,158 +618,12 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         keyboardManager.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
-    private var hasTestData = false
+    private fun requestBusData() {
+        busDataViewModel.requestData()
 
-    private fun provideTestData() {
-        if (hasTestData) return
-        hasTestData = true
-
-        val stops = setOf(
-            BusStop(
-                "stopId0",
-                "stopCode0",
-                "Stop 1",
-                randomLocation(),
-                setOf("lineId2", "lineId5")
-            ),
-            BusStop(
-                "stopId1",
-                "stopCode1",
-                "Stop 2",
-                randomLocation(),
-                setOf("lineId0", "lineId4", "lineId7")
-            ),
-            BusStop(
-                "stopId2",
-                "stopCode2",
-                "Stop 3",
-                randomLocation(),
-                setOf("lineId1", "lineId6")
-            ),
-            BusStop(
-                "stopId3",
-                "stopCode3",
-                "Stop 4",
-                randomLocation(),
-                setOf("lineId0", "lineId6")
-            ),
-            BusStop(
-                "stopId4",
-                "stopCode4",
-                "Stop 5",
-                randomLocation(),
-                setOf("lineId8", "lineId1")
-            ),
-            BusStop(
-                "stopId5",
-                "stopCode5",
-                "Stop 6",
-                randomLocation(),
-                setOf("lineId11", "lineId9")
-            ),
-            BusStop(
-                "stopId6",
-                "stopCode6",
-                "Stop 7",
-                randomLocation(),
-                setOf("lineId3", "lineId10")
-            ),
-            BusStop(
-                "stopId7",
-                "stopCode7",
-                "Stop 8",
-                randomLocation(),
-                setOf("lineId7", "lineId3")
-            ),
-            BusStop(
-                "stopId8",
-                "stopCode8",
-                "Stop 9",
-                randomLocation(),
-                setOf("lineId9", "lineId11")
-            ),
-        )
-
-        val lines = setOf(
-            BusLine("lineId0", "X10", setOf(), setOf("stopId1", "stopId3"), setOf()),
-            BusLine("lineId1", "2A", setOf(), setOf("stopId2", "stopId4"), setOf()),
-            BusLine("lineId2", "2", setOf(), setOf("stopId0"), setOf()),
-            BusLine("lineId3", "9X", setOf(), setOf("stopId6", "stopId7"), setOf()),
-            BusLine("lineId4", "4W", setOf(), setOf("stopId1"), setOf()),
-            BusLine("lineId5", "Y2", setOf(), setOf("stopId5"), setOf()),
-            BusLine("lineId6", "91", setOf(), setOf("stopId2", "stopId3"), setOf()),
-            BusLine("lineId7", "134", setOf(), setOf("stopId1", "stopId7"), setOf()),
-            BusLine("lineId8", "43", setOf(), setOf("stopId4"), setOf()),
-            BusLine("lineId9", "W10", setOf(), setOf("stopId5", "stopId8"), setOf()),
-            BusLine("lineId10", "69", setOf(), setOf("stopId6"), setOf()),
-            BusLine("lineId11", "261", setOf(), setOf("stopId5", "stopId8"), setOf()),
-        )
-
-        val routes =
-            lines.map {
-                val lineRoutes = BusLineRoutes(
-                    it.id, setOf(
-                        BusLineRoute(
-                            "routeId0",
-                            "Muswell Hill to Archway",
-                            "0",
-                            "Muswell Hill Broadway",
-                            "0",
-                            "Archway Station",
-                            BusLineRoute.Direction.OUTBOUND,
-                            arrayOf()
-                        ),
-                        BusLineRoute(
-                            "routeId1",
-                            "Archway to Muswell Hill",
-                            "0",
-                            "Archway Station",
-                            "0",
-                            "Muswell Hill Broadway",
-                            BusLineRoute.Direction.INBOUND,
-                            arrayOf()
-                        ),
-                        BusLineRoute(
-                            "routeId2",
-                            "Muswell Hill to North Finchley",
-                            "0",
-                            "Muswell Hill Broadway",
-                            "0",
-                            "Woodhouse College",
-                            BusLineRoute.Direction.OUTBOUND,
-                            arrayOf()
-                        ),
-                        BusLineRoute(
-                            "routeId3",
-                            "North Finchely to Muswell Hill",
-                            "0",
-                            "Woodhouse College",
-                            "0",
-                            "Muswell Hill Broadway",
-                            BusLineRoute.Direction.INBOUND,
-                            arrayOf()
-                        ),
-                    )
-                )
-
-                val routeIds = lineRoutes.routes.map { it.id }.toSet()
-
-                it.routes = routeIds
-
-                lineRoutes
-            }.toSet()
-
-        busStopsViewModel.debugSet(stops)
-        busLinesViewModel.debugSet(lines)
-        busRoutesViewModel.debugSet(routes)
-    }
-
-    private fun randomLocation(): LatLngPoint {
-        val bounds = Locality.COVENTRY.location
-
-        val rLat = Random.nextDouble(bounds.southwest.lat, bounds.northeast.lat)
-        val rLng = Random.nextDouble(bounds.southwest.lng, bounds.northeast.lng)
-
-        return LatLngPoint(rLat, rLng)
+        // observe all data instead of just bus stops to make sure that lines and routes are loaded
+        busDataViewModel.data.observe(viewLifecycleOwner) {
+            nearbyBusStopsViewModel.busStops = it.first
+        }
     }
 }

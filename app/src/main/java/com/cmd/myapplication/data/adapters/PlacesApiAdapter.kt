@@ -1,4 +1,4 @@
-package com.cmd.myapplication.data.repositories
+package com.cmd.myapplication.data.adapters
 
 import android.app.Application
 import android.util.Log
@@ -9,16 +9,20 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.tasks.Tasks
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.AutocompleteSessionToken
-import com.google.android.libraries.places.api.model.PlaceTypes
+import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.model.RectangularBounds
+import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
 import com.google.android.libraries.places.api.net.PlacesClient
+import com.google.android.libraries.places.api.net.SearchByTextRequest
 import com.google.gson.Gson
 import java.net.HttpURLConnection
 import java.net.URL
 
-class PlacesDataSource(
-    private val application: Application,
+import com.cmd.myapplication.data.Place as PlaceData
+
+class PlacesApiAdapter(
+    application: Application,
 ) {
     private val client: PlacesClient
 
@@ -27,12 +31,14 @@ class PlacesDataSource(
         client = Places.createClient(application.applicationContext)
     }
 
-    fun findNearbyPlaces(query: String, location: LatLngPoint, bounds: LatLngRect, token: AutocompleteSessionToken): Set<PlaceSearchResult> {
+    fun autocompleteSearch(
+        query: String,
+        location: LatLngPoint,
+        token: AutocompleteSessionToken,
+    ): List<PlaceSearchResult> {
         val request = FindAutocompletePredictionsRequest.builder().apply {
             origin = location.toLatLng()
-            locationRestriction = bounds.toRectangularBounds()
             countries = listOf("GB")
-            typesFilter = listOf(PlaceTypes.ADDRESS)
             sessionToken = token
             this.query = query
         }.build()
@@ -40,18 +46,42 @@ class PlacesDataSource(
         return Tasks.await(client.findAutocompletePredictions(request)).autocompletePredictions.map {
             PlaceSearchResult(
                 it.placeId,
-                it.getFullText(null).toString(),
                 it.getPrimaryText(null).toString(),
+                it.getSecondaryText(null).toString(),
                 it.distanceMeters ?: 0
             )
-        }.toSet()
+        }
     }
 
+    fun requestPlaceLocation(id: String): LatLngPoint? {
+        val request = FetchPlaceRequest.builder(
+            id,
+            listOf(Place.Field.LAT_LNG),
+        ).build()
+
+        return Tasks.await(client.fetchPlace(request))?.place?.latLng?.let {
+            LatLngPoint(it.latitude, it.longitude)
+        }
+    }
+
+    fun search(query: String): List<PlaceData> {
+        val request = SearchByTextRequest.builder(
+            query,
+            listOf(Place.Field.ID, Place.Field.NAME, Place.Field.ADDRESS, Place.Field.LAT_LNG)
+        ).build()
+
+        return Tasks.await(client.searchByText(request))?.places?.map {
+            PlaceData(
+                it.id!!,
+                it.name!!,
+                it.address!!,
+                it.latLng!!.let { LatLngPoint(it.longitude, it.longitude) }
+            )
+        } ?: emptyList()
+    }
+
+    @Deprecated("Use search")
     fun doTextQuery(query: String) {
-
-    }
-
-    fun doTextQuery2(query: String) {
         val connection =
             URL(TEXT_QUERY_URL).openConnection().let { it as HttpURLConnection }.apply {
                 requestMethod = "POST"

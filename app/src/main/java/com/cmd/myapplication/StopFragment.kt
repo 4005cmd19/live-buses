@@ -19,8 +19,7 @@ import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.viewpager2.widget.ViewPager2
-import com.cmd.myapplication.data.viewModels.BusLinesViewModel
-import com.cmd.myapplication.data.viewModels.BusStopsViewModel
+import com.cmd.myapplication.data.viewModels.BusDataViewModel
 import com.cmd.myapplication.data.viewModels.NearbyBusesViewModel
 import com.cmd.myapplication.utils.adapters.LinePagerAdapter
 import com.google.android.material.motion.MotionUtils
@@ -32,8 +31,7 @@ import com.google.android.material.transition.MaterialFade
 class StopFragment : Fragment(R.layout.fragment_stop) {
     private val args: StopFragmentArgs by navArgs()
 
-    private val busLinesViewModel: BusLinesViewModel by activityViewModels { BusLinesViewModel.Factory }
-    private val busStopsViewModel: BusStopsViewModel by activityViewModels { BusStopsViewModel.Factory }
+    private val busDataViewModel: BusDataViewModel by activityViewModels { BusDataViewModel.Factory }
     private val nearbyBusesViewModel: NearbyBusesViewModel by activityViewModels { NearbyBusesViewModel.Factory }
 
     private lateinit var stopNameView: TextView
@@ -121,10 +119,10 @@ class StopFragment : Fragment(R.layout.fragment_stop) {
         lineViewPager.offscreenPageLimit = 100
         lineViewPager.adapter = lineViewPagerAdapter
 
-        val stop = busStopsViewModel.busStops.value?.find { it.id == args.stopId }
+        val stop = busDataViewModel.busStops.value?.find { it.id == args.stopId }
         stopNameView.text = stop?.displayName
 
-        val lines = busLinesViewModel.busLines.value?.filter { it.stops.contains(stop?.id) }
+        val lines = busDataViewModel.busLines.value?.filter { it.stops.contains(stop?.id) }
         val lineNames = lines?.map { it.displayName }
 
         Log.w(TAG, "stopId=${args.stopId} lineId=${args.lineId} lines=${lineNames?.joinToString()}")

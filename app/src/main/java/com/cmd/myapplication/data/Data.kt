@@ -42,6 +42,14 @@ data class LatLngPoint(
         return this.lat.toFloat() == other.lat.toFloat() && this.lng.toFloat() == other.lng.toFloat()
     }
 
+    fun approxEquals(other: LatLngPoint?, epsilon: Double = 1e-2): Boolean {
+        if (other == null) {
+            return false
+        }
+
+        return abs(other - this) <= epsilon
+    }
+
     operator fun minus(latLngPoint: LatLngPoint): Double {
         val dx = abs(this.lat - latLngPoint.lat)
         val dy = abs(this.lng - latLngPoint.lng)
@@ -60,11 +68,31 @@ data class LatLngRect(
                 && this.southwest.lng >= latLngPoint.lng
                 && this.northeast.lng <= latLngPoint.lng
 
+    override operator fun equals(other: Any?): Boolean {
+        if (other !is LatLngRect) {
+            return false
+        }
+
+        return southwest == other.southwest && northeast == other.northeast
+    }
+
+    fun approxEquals(other: LatLngRect?) =
+        southwest.approxEquals(other?.southwest) && northeast.approxEquals(other?.northeast)
+
     val center: LatLngPoint
         get() = LatLngPoint(
             northeast.lat - southwest.lat,
             northeast.lng - southwest.lng
         )
+}
+
+/**
+ * Implemented by data classes that can be returned by a search in [SearchViewModel]
+ */
+interface SearchResult
+
+interface Meta {
+    val size: Int
 }
 
 data class BusStop(
@@ -73,7 +101,7 @@ data class BusStop(
     var displayName: String,
     var location: LatLngPoint,
     var lines: Set<String>,
-)
+): SearchResult
 
 data class BusLine(
     var id: String,
@@ -86,7 +114,7 @@ data class BusLine(
 data class BusLineRoutes(
     var lineId: String,
     var routes: Set<BusLineRoute>,
-)
+): SearchResult
 
 data class BusLineRoute(
     var id: String,
@@ -126,25 +154,45 @@ data class BusArrival(
     var expectedTime: Long,
 )
 
-interface SearchResult
-
 data class StopSearchResult(
     var stopId: String,
     var lineIds: List<String>,
 ) : SearchResult
 
-data class RouteSearchResult(
-    var lineId: String,
-    var routeId: String,
-    var operatorName: String,
+data class BusLineRouteSearchResult(
+    var line: BusLine,
+    var route: BusLineRoute,
 ) : SearchResult
 
 data class PlaceSearchResult(
     val id: String,
     val name: String,
-    val shortName: String,
+    val address: String,
     val distance: Int,
 ) : SearchResult
+
+data class Place (
+    val id: String,
+    val name: String,
+    val address: String,
+    val location: LatLngPoint,
+): SearchResult
+
+data class BusStopMetadata (
+    override val size: Int
+): Meta
+
+data class BusLineMetadata (
+    override val size: Int
+): Meta
+
+data class BusLineRoutesMetadata (
+    override val size: Int
+): Meta
+
+data class BusArrivalMetadata(
+    override val size: Int
+): Meta
 
 /*
 

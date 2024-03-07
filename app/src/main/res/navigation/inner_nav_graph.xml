@@ -13,9 +13,6 @@
         <action
             android:id="@+id/action_busListFragment_to_stopFragment"
             app:destination="@id/stopFragment" />
-        <action
-            android:id="@+id/action_busListFragment_to_searchFragment"
-            app:destination="@id/searchFragment" />
     </fragment>
     <fragment
         android:id="@+id/stopFragment"
@@ -37,21 +34,6 @@
 
         <action
             android:id="@+id/action_stopFragment_to_busListFragment"
-            app:destination="@id/busListFragment" />
-        <action
-            android:id="@+id/action_stopFragment_to_searchFragment"
-            app:destination="@id/searchFragment" />
-    </fragment>
-    <fragment
-        android:id="@+id/searchFragment"
-        android:name="com.cmd.myapplication.SearchFragment"
-        android:label="fragment_search"
-        tools:layout="@layout/fragment_search" >
-        <action
-            android:id="@+id/action_searchFragment_to_stopFragment"
-            app:destination="@id/stopFragment" />
-        <action
-            android:id="@+id/action_searchFragment_to_busListFragment"
             app:destination="@id/busListFragment" />
     </fragment>
 </navigation>

@@ -1,6 +1,7 @@
 package com.cmd.myapplication.data.viewModels
 
 import android.view.View
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -14,9 +15,9 @@ import com.cmd.myapplication.data.processors.inArea
 
 class NearbyBusesViewModel : ViewModel() {
     private val _location: MutableLiveData<LatLngPoint> by lazy { MutableLiveData(null) }
-    private val _busStops: MutableLiveData<Set<BusStop>> by lazy { MutableLiveData(emptySet()) }
+    private val _busStops: MutableLiveData<List<BusStop>> by lazy { MutableLiveData(emptyList()) }
 
-    val nearbyBusStops: MutableLiveData<List<BusStop>> by lazy { MutableLiveData(emptyList()) }
+    val nearbyBusStops: LiveData<List<BusStop>> by lazy { MutableLiveData(emptyList()) }
     val selectedBusStop: MutableLiveData<Pair<String, View>> by lazy { MutableLiveData(null) }
 
     var location: LatLngPoint?
@@ -27,7 +28,7 @@ class NearbyBusesViewModel : ViewModel() {
             recompute()
         }
 
-    var busStops: Set<BusStop>?
+    var busStops: List<BusStop>?
         get() = _busStops.value
         set(value) {
             _busStops.value = value
@@ -54,12 +55,12 @@ class NearbyBusesViewModel : ViewModel() {
                 .closest(location!!)
                 .toList()
 
-            nearbyBusStops.value = nearbyStops
+            nearbyBusStops.let { it as MutableLiveData }.value = nearbyStops
         }
     }
 
     companion object {
-        const val TAG = "BusLinesViewModel"
+        const val TAG = "NearbyBusesViewModel"
         const val PERIOD = 5000L
 
         val Factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {

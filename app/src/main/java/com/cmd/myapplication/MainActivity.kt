@@ -14,8 +14,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker.PERMISSION_GRANTED
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
-import com.cmd.myapplication.data.viewModels.BusLinesViewModel
-import com.cmd.myapplication.data.viewModels.BusStopsViewModel
 import com.cmd.myapplication.data.viewModels.DeviceLocationViewModel
 import com.cmd.myapplication.data.viewModels.NearbyBusesViewModel
 import com.cmd.myapplication.databinding.ActivityMainBinding
@@ -33,8 +31,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     val deviceLocationViewModel: DeviceLocationViewModel by viewModels { DeviceLocationViewModel.Factory }
-    val busStopsViewModel: BusStopsViewModel by viewModels { BusStopsViewModel.Factory }
-    val busLinesViewModel: BusLinesViewModel by viewModels { BusLinesViewModel.Factory }
     val nearbyBusesViewModel: NearbyBusesViewModel by viewModels { NearbyBusesViewModel.Factory }
 
     private lateinit var binding: ActivityMainBinding
@@ -82,10 +78,6 @@ class MainActivity : AppCompatActivity() {
 
         deviceLocationViewModel.currentLocation.observe(this) {
             nearbyBusesViewModel.location = it
-        }
-
-        busStopsViewModel.busStops.observe(this) {
-            nearbyBusesViewModel.busStops = it
         }
     }
 

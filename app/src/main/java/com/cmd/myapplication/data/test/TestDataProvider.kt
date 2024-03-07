@@ -1,31 +1,55 @@
 package com.cmd.myapplication.data.test
 
-import android.util.Log
 import com.cmd.myapplication.data.BusLine
+import com.cmd.myapplication.data.BusLineOperator
 import com.cmd.myapplication.data.BusLineRoute
 import com.cmd.myapplication.data.BusLineRoutes
 import com.cmd.myapplication.data.BusStop
 import com.cmd.myapplication.data.LatLngPoint
 import com.cmd.myapplication.data.Locality
-import com.cmd.myapplication.data.viewModels.BusLinesViewModel
-import com.cmd.myapplication.data.viewModels.BusRoutesViewModel
-import com.cmd.myapplication.data.viewModels.BusStopsViewModel
+import com.google.gson.Gson
 import kotlin.random.Random
 import kotlin.random.nextInt
 
-class TestDataProvider(
-    private val busStopsViewModel: BusStopsViewModel,
-    private val busLinesViewModel: BusLinesViewModel,
-    private val busRoutesViewModel: BusRoutesViewModel,
-) {
+class TestDataProvider {
     companion object {
         const val TAG = "TestDataProvider"
     }
 
-    fun publishTestData(stops: Set<BusStop>, lines: Set<BusLine>, routes: Set<BusLineRoutes>) {
-        busStopsViewModel.debugSet(stops)
-        busLinesViewModel.debugSet(lines)
-        busRoutesViewModel.debugSet(routes)
+    fun publishToClient(
+        client: TestClient,
+        stops: Set<BusStop>,
+        lines: Set<BusLine>,
+        routes: Set<BusLineRoutes>,
+    ) {
+        for (line in lines) {
+            val id = line.id
+            val payload = Gson().toJson(line).toByteArray()
+
+            client.publish("buses/lines/${id}", payload, true)
+        }
+
+        for (stop in stops) {
+            val id = stop.id
+            val payload = Gson().toJson(stop).toByteArray()
+
+            client.publish("buses/stops/${id}", payload, true)
+        }
+
+        for (route in routes) {
+            val lineId = route.lineId
+            val payload = Gson().toJson(route).toByteArray()
+
+            client.publish("buses/lines/${lineId}/routes", payload, true)
+        }
+
+        client.publish("meta/lines", Gson().toJson(object {
+            val size = lines.size
+        }).toByteArray(), true)
+
+        client.publish("meta/stops", Gson().toJson(object {
+            val size = stops.size
+        }).toByteArray(), true)
     }
 
     fun generateTestData(): Triple<Set<BusStop>, Set<BusLine>, Set<BusLineRoutes>> {
@@ -84,94 +108,144 @@ class TestDataProvider(
 
         generated.addAll(
             arrayOf(
-                BusLine("lineId0", "X10", setOf(), setOf("stopId1", "stopId3"), setOf()),
-                BusLine("lineId1", "2A", setOf(), setOf("stopId2", "stopId4"), setOf()),
-                BusLine("lineId2", "2", setOf(), setOf("stopId0"), setOf()),
-                BusLine("lineId3", "9X", setOf(), setOf("stopId6", "stopId7"), setOf()),
-                BusLine("lineId4", "4W", setOf(), setOf("stopId1"), setOf()),
-                BusLine("lineId5", "Y2", setOf(), setOf("stopId5"), setOf()),
-                BusLine("lineId6", "91", setOf(), setOf("stopId2", "stopId3"), setOf()),
-                BusLine("lineId7", "134", setOf(), setOf("stopId1", "stopId7"), setOf()),
-                BusLine("lineId8", "43", setOf(), setOf("stopId4"), setOf()),
-                BusLine("lineId9", "W10", setOf(), setOf("stopId5", "stopId8"), setOf()),
-                BusLine("lineId10", "69", setOf(), setOf("stopId6"), setOf()),
-                BusLine("lineId11", "261", setOf(), setOf("stopId5", "stopId8"), setOf()),
+                BusLine("lineId0", "X10", setOf(), setOf(), setOf()),
+                BusLine("lineId1", "2A", setOf(), setOf(), setOf()),
+                BusLine("lineId2", "2", setOf(), setOf(), setOf()),
+                BusLine("lineId3", "9X", setOf(), setOf(), setOf()),
+                BusLine("lineId4", "4W", setOf(), setOf(), setOf()),
+                BusLine("lineId5", "Y2", setOf(), setOf(), setOf()),
+                BusLine("lineId6", "91", setOf(), setOf(), setOf()),
+                BusLine("lineId7", "134", setOf(), setOf(), setOf()),
+                BusLine("lineId8", "43", setOf(), setOf(), setOf()),
+                BusLine("lineId9", "W10", setOf(), setOf(), setOf()),
+                BusLine("lineId10", "69", setOf(), setOf(), setOf()),
+                BusLine("lineId11", "261", setOf(), setOf(), setOf()),
             )
         )
 
-        var s = ""
-        val r = ('A'..'Z').toMutableList()
-
-        Log.e(TAG, "r - $r")
-
-        for (i in 0..<count - generated.size) {
+        for (i in generated.size..<count - generated.size) {
             val hasLetter = Random.nextBoolean()
             val number = Random.nextInt(1..99)
 
-            val letter = if (hasLetter) ('A'..'Z').random() else ""
+            val letter = if (hasLetter) ('A'..'Z').random().toString() else ""
 
             val name = "$letter$number"
 
-            val stop = BusLine(
+            val line = BusLine(
                 "lineId$i",
                 name,
-                emptySet(),
+                setOf(BusLineOperator("idTfl", "codeTfl", "TfL")),
                 emptySet(),
                 emptySet()
             )
 
-            generated.add(stop)
+            generated.add(line)
         }
 
         return generated
     }
 
-    private fun generateBusRoutes(lines: Set<String>, count: Int = 10): MutableSet<BusLineRoutes> {
+    private fun generateBusRoutes(lines: Set<String>): MutableSet<BusLineRoutes> {
         val generated = mutableSetOf<BusLineRoutes>()
 
+        val possibleRoutes1 = listOf(
+            BusLineRoute(
+                "routeId0",
+                "Muswell Hill to Archway",
+                "0",
+                "Muswell Hill Broadway",
+                "0",
+                "Archway Station",
+                BusLineRoute.Direction.OUTBOUND,
+                arrayOf()
+            ),
+            BusLineRoute(
+                "routeId2",
+                "Muswell Hill to North Finchley",
+                "0",
+                "Muswell Hill Broadway",
+                "0",
+                "Woodhouse College",
+                BusLineRoute.Direction.OUTBOUND,
+                arrayOf()
+            ),
+            BusLineRoute(
+                "routeId4",
+                "Muswell Hill to Highate",
+                "0",
+                "Muswell Hill",
+                "0",
+                "Highate",
+                BusLineRoute.Direction.OUTBOUND,
+                arrayOf()
+            ),
+            BusLineRoute(
+                "routeId6",
+                "Muswell Hill to Warren Street",
+                "0",
+                "Muswell Hill",
+                "0",
+                "Warren Street",
+                BusLineRoute.Direction.OUTBOUND,
+                arrayOf()
+            )
+        )
+
+        val possibleRoutes2 = listOf(
+            BusLineRoute(
+                "routeId1",
+                "Archway to Muswell Hill",
+                "0",
+                "Archway Station",
+                "0",
+                "Muswell Hill Broadway",
+                BusLineRoute.Direction.INBOUND,
+                arrayOf()
+            ),
+            BusLineRoute(
+                "routeId3",
+                "North Finchely to Muswell Hill",
+                "0",
+                "Woodhouse College",
+                "0",
+                "Muswell Hill Broadway",
+                BusLineRoute.Direction.INBOUND,
+                arrayOf()
+            ),
+            BusLineRoute(
+                "routeId5",
+                "Highate to Muswell Hill",
+                "0",
+                "Highate",
+                "0",
+                "Muswell Hill",
+                BusLineRoute.Direction.INBOUND,
+                arrayOf()
+            ),
+            BusLineRoute(
+                "routeId7",
+                "Warren Street to Muswell Hill",
+                "0",
+                "Warren Street",
+                "0",
+                "Muswell Hill",
+                BusLineRoute.Direction.INBOUND,
+                arrayOf()
+            )
+        )
+
         generated.addAll(lines.map {
+            val p1 = mutableListOf(*possibleRoutes1.toTypedArray())
+            val i1 = Random.nextInt(0..p1.lastIndex)
+            p1.removeAt(i1)
+            val i2 = Random.nextInt(0..p1.lastIndex)
+
             BusLineRoutes(
                 it, setOf(
-                    BusLineRoute(
-                        "routeId0",
-                        "Muswell Hill to Archway",
-                        "0",
-                        "Muswell Hill Broadway",
-                        "0",
-                        "Archway Station",
-                        BusLineRoute.Direction.OUTBOUND,
-                        arrayOf()
-                    ),
-                    BusLineRoute(
-                        "routeId1",
-                        "Archway to Muswell Hill",
-                        "0",
-                        "Archway Station",
-                        "0",
-                        "Muswell Hill Broadway",
-                        BusLineRoute.Direction.INBOUND,
-                        arrayOf()
-                    ),
-                    BusLineRoute(
-                        "routeId2",
-                        "Muswell Hill to North Finchley",
-                        "0",
-                        "Muswell Hill Broadway",
-                        "0",
-                        "Woodhouse College",
-                        BusLineRoute.Direction.OUTBOUND,
-                        arrayOf()
-                    ),
-                    BusLineRoute(
-                        "routeId3",
-                        "North Finchely to Muswell Hill",
-                        "0",
-                        "Woodhouse College",
-                        "0",
-                        "Muswell Hill Broadway",
-                        BusLineRoute.Direction.INBOUND,
-                        arrayOf()
-                    ),
+                    possibleRoutes1[i1],
+                    possibleRoutes2[i1],
+                    possibleRoutes1[i2],
+                    possibleRoutes2[i2]
                 )
             )
         })

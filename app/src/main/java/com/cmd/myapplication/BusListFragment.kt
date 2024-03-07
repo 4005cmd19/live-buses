@@ -14,17 +14,15 @@ import androidx.lifecycle.Observer
 import androidx.navigation.fragment.FragmentNavigatorExtras
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
-import com.cmd.myapplication.data.viewModels.BusLinesViewModel
-import com.cmd.myapplication.data.viewModels.BusRoutesViewModel
-import com.cmd.myapplication.data.viewModels.BusStopsViewModel
+import com.cmd.myapplication.data.viewModels.BusDataViewModel
 import com.cmd.myapplication.data.viewModels.DeviceLocationViewModel
 import com.cmd.myapplication.data.viewModels.NearbyBusesViewModel
+import com.cmd.myapplication.utils.ListViewLayoutManager
+import com.cmd.myapplication.utils.ScrollableHost
 import com.cmd.myapplication.utils.adapters.BusData
 import com.cmd.myapplication.utils.adapters.BusListAdapter
 import com.cmd.myapplication.utils.adapters.BusStopData
 import com.cmd.myapplication.utils.adapters.BusStopListAdapter
-import com.cmd.myapplication.utils.ListViewLayoutManager
-import com.cmd.myapplication.utils.ScrollableHost
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.motion.MotionUtils
 import com.google.android.material.transition.MaterialFade
@@ -42,9 +40,7 @@ class BusListFragment : Fragment(R.layout.fragment_bus_list) {
     private val nearbyBusesViewModel: NearbyBusesViewModel by activityViewModels { NearbyBusesViewModel.Factory }
 
     private val deviceLocationViewModel: DeviceLocationViewModel by activityViewModels { DeviceLocationViewModel.Factory }
-    private val busStopsViewModel: BusStopsViewModel by activityViewModels { BusStopsViewModel.Factory }
-    private val busLinesViewModel: BusLinesViewModel by activityViewModels { BusLinesViewModel.Factory }
-    private val busRoutesViewModel: BusRoutesViewModel by activityViewModels { BusRoutesViewModel.Factory }
+    private val busDataViewModel: BusDataViewModel by activityViewModels { BusDataViewModel.Factory }
 
     private lateinit var container: ScrollableHost
     private lateinit var bottomSheetHeadingView: TextView
@@ -106,8 +102,8 @@ class BusListFragment : Fragment(R.layout.fragment_bus_list) {
             val busData = it.map {
                 val lineId = it.lines.first()
 
-                val line = busLinesViewModel.busLines.value?.find { it.id == lineId }
-                val routes = busRoutesViewModel.busRoutes.value?.find { it.lineId == line?.id }
+                val line = busDataViewModel.busLines.value?.find { it.id == lineId }
+                val routes = busDataViewModel.busLineRoutes.value?.find { it.lineId == line?.id }
                 val route = routes?.routes?.first()
 
                 BusData(
@@ -122,7 +118,7 @@ class BusListFragment : Fragment(R.layout.fragment_bus_list) {
 
             val busStopsData = it.map {
                 val linesIds = it.lines.toList()
-                val lines = busLinesViewModel.busLines.value?.filter { linesIds.contains(it.id) }
+                val lines = busDataViewModel.busLines.value?.filter { linesIds.contains(it.id) }
                     ?.map { it.displayName }
                     ?.toList()
 

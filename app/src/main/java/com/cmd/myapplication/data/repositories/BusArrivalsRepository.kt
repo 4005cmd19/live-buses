@@ -1,35 +1,19 @@
 package com.cmd.myapplication.data.repositories
 
-import android.annotation.SuppressLint
 import com.cmd.myapplication.data.BusArrival
-import com.google.gson.Gson
+import com.cmd.myapplication.data.BusArrivalMetadata
+import com.cmd.myapplication.data.adapters.MqttClientAdapter
 
-@SuppressLint("MissingPermission")
 class BusArrivalsRepository(
-    private val remoteDataSource: RemoteDataSource,
-): Repository<BusArrival>() {
-    override fun request(stopIds: Array<String>, callback: (stopId: String, arrivals: BusArrival) -> Unit) {
-        for (stopId in stopIds) {
-            remoteDataSource.listenTo("${BusStopsRepository.TOPIC}$stopId/arrivals") { _, payload ->
-                val arrival = Gson().fromJson(payload.toString(), BusArrival::class.java)
+    remoteDataSource: MqttClientAdapter,
+) : BusDataRepository<BusArrival, BusArrivalMetadata>(
+    remoteDataSource,
+    BusArrival::class.java,
+    BusArrivalMetadata::class.java
+) {
+    override val dataTopicTemplate: String
+        get() = "buses/stops/%s/arrivals"
 
-                callback(stopId, arrival)
-            }
-        }
-    }
-
-    override fun requestOnce(ids: Array<String>, callback: (id: String, BusArrival) -> Unit) {
-        this.request(ids) { stopId, arrivals ->
-            callback(stopId, arrivals)
-
-            ignore(arrayOf(stopId))
-        }
-    }
-
-    override fun requestAll(callback: (id: String, BusArrival) -> Unit) = request(arrayOf("+"), callback)
-
-    override fun ignore (stopIds: Array<String>) = stopIds.forEach { remoteDataSource.stopListeningTo(it) }
-
-    override fun ignoreAll() = ignore(arrayOf("+"))
+    override val metaTopicTemplate: String
+        get() = "meta/stops"
 }
-

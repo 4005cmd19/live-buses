@@ -1,16 +1,16 @@
 package com.cmd.myapplication
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.RecyclerView
+import com.cmd.myapplication.data.BusLineRouteSearchResult
+import com.cmd.myapplication.data.BusStop
 import com.cmd.myapplication.data.PlaceSearchResult
-import com.cmd.myapplication.data.RouteSearchResult
-import com.cmd.myapplication.data.StopSearchResult
-import com.cmd.myapplication.data.viewModels.BusLinesViewModel
-import com.cmd.myapplication.data.viewModels.BusRoutesViewModel
-import com.cmd.myapplication.data.viewModels.BusStopsViewModel
+import com.cmd.myapplication.data.viewModels.BusDataViewModel
+import com.cmd.myapplication.data.viewModels.DeviceLocationViewModel
 import com.cmd.myapplication.data.viewModels.SearchViewModel
 import com.cmd.myapplication.utils.adapters.BusRouteData
 import com.cmd.myapplication.utils.adapters.BusStopData
@@ -24,9 +24,8 @@ import com.google.android.material.transition.MaterialFade
  * create an instance of this fragment.
  */
 class SearchFragment : Fragment(R.layout.fragment_search) {
-    private val busStopsViewModel: BusStopsViewModel by activityViewModels { BusStopsViewModel.Factory }
-    private val busLinesViewModel: BusLinesViewModel by activityViewModels { BusLinesViewModel.Factory }
-    private val busRoutesViewModel: BusRoutesViewModel by activityViewModels { BusRoutesViewModel.Factory }
+    private val busDataViewModel: BusDataViewModel by activityViewModels { BusDataViewModel.Factory }
+    private val deviceLocationViewModel: DeviceLocationViewModel by activityViewModels { DeviceLocationViewModel.Factory }
 
     private val searchViewModel: SearchViewModel by activityViewModels { SearchViewModel.Factory }
 
@@ -41,51 +40,70 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
         }
 
         exitTransition = MaterialFade().apply {
-            duration = 200
+            duration = 400
         }
     }
 
+    @SuppressLint("RestrictedApi")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         searchList = view.findViewById(R.id.search_list)
         searchList.adapter = searchListAdapter
 
+        deviceLocationViewModel.currentLocation.observe(viewLifecycleOwner) {
+            if (it != null) {
+                searchViewModel.supplyLocation(it)
+            }
+        }
+
+        busDataViewModel.data.observe(viewLifecycleOwner) {
+            val (busStops, busLines, busLineRoutes) = it
+
+            searchViewModel.supplyBusData(busStops, busLines, busLineRoutes)
+        }
+
+        searchViewModel.searchText.observe(viewLifecycleOwner) {
+            searchViewModel.search(it)
+        }
+
         searchViewModel.searchResults.observe(viewLifecycleOwner) {
             val adapterData = it.map { result ->
-                if (result is StopSearchResult) {
-                    val busStop = busStopsViewModel.busStops.value?.find { it.id == result.stopId }
-                    val lines =
-                        busLinesViewModel.busLines.value?.filter { result.lineIds.contains(it.id) }
-                            ?: emptyList()
+                when (result) {
+                    is BusStop -> {
+                        val lines =
+                            busDataViewModel.busLines.value?.filter { result.lines.contains(it.id) }
+                                ?: emptyList()
 
-                    if (busStop != null) BusStopData(
-                        busStop.id,
-                        busStop.displayName,
-                        lines.map { it.displayName }
-                    ) else null
-                } else if (result is RouteSearchResult) {
-                    val line = busLinesViewModel.busLines.value?.find { it.id == result.lineId }
-                    val route =
-                        busRoutesViewModel.busRoutes.value?.find { it.lineId == result.lineId }
-                            ?.routes
-                            ?.find { it.id == result.routeId }
+                        BusStopData(
+                            result.id,
+                            result.displayName,
+                            lines.map { it.displayName }
+                        )
+                    }
 
-                    if (line != null && route != null) BusRouteData(
-                        line.id,
-                        route.id,
-                        line.displayName,
-                        route.name,
-                        line.operators.first().name
-                    ) else null
-                } else {
-                    val r = result as PlaceSearchResult
+                    is BusLineRouteSearchResult -> {
+                        val line = result.line
+                        val route = result.route
 
-                    PlaceData(
-                        r.id,
-                        r.shortName,
-                        r.name
-                    )
+                        BusRouteData(
+                            line.id,
+                            route.id,
+                            line.displayName,
+                            route.name,
+                            line.operators.first().name
+                        )
+                    }
+
+                    else -> {
+                        val r = result as PlaceSearchResult
+
+                        PlaceData(
+                            r.id,
+                            r.name,
+                            r.address
+                        )
+                    }
                 }
-            }.filterNotNull()
+            }
 
             searchListAdapter.searchResults.apply {
                 clear()
@@ -94,5 +112,7 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
 
             searchListAdapter.notifyDataSetChanged()
         }
+
+
     }
 }

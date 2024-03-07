@@ -7,9 +7,8 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.activityViewModels
-import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.fragment.findNavController
 import com.cmd.myapplication.databinding.FragmentBottomSheetBinding
+import com.google.android.material.transition.MaterialFade
 
 /**
  * A simple [Fragment] subclass.
@@ -24,6 +23,14 @@ class BottomSheetFragment : Fragment(R.layout.fragment_bottom_sheet) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        exitTransition = MaterialFade().apply {
+            duration = 400
+        }
+
+        reenterTransition = MaterialFade().apply {
+            duration = 400
+        }
     }
 
     override fun onCreateView(
@@ -40,25 +47,6 @@ class BottomSheetFragment : Fragment(R.layout.fragment_bottom_sheet) {
 
         busListFragmentContainer.setOnTouchListener { _, _ -> false }
         view.setOnTouchListener { _, _ -> false }
-
-        sharedViewModel.isSearchFragmentVisible.observe(viewLifecycleOwner) {
-            val navController =
-                busListFragmentContainer.getFragment<NavHostFragment>().findNavController()
-
-            val currentFragmentId = navController.currentDestination?.id
-
-            if (it) {
-                if (currentFragmentId == R.id.busListFragment) {
-                    navController.navigate(BusListFragmentDirections.actionBusListFragmentToSearchFragment())
-                } else if (currentFragmentId == R.id.stopFragment) {
-                    navController.navigate(SearchFragmentDirections.actionSearchFragmentToBusListFragment())
-                }
-            } else {
-                if (currentFragmentId == R.id.searchFragment) {
-                    navController.navigateUp()
-                }
-            }
-        }
     }
 
     private var children = 0
