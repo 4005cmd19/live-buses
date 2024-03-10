@@ -1,27 +1,17 @@
 package com.cmd.myapplication
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.os.Bundle
-import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker.PERMISSION_GRANTED
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
-import com.cmd.myapplication.data.viewModels.DeviceLocationViewModel
-import com.cmd.myapplication.data.viewModels.NearbyBusesViewModel
 import com.cmd.myapplication.databinding.ActivityMainBinding
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
-import com.google.android.gms.location.Priority
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -30,13 +20,8 @@ class MainActivity : AppCompatActivity() {
         const val PERMISSION_REQUEST_CODE = 1
     }
 
-    val deviceLocationViewModel: DeviceLocationViewModel by viewModels { DeviceLocationViewModel.Factory }
-    val nearbyBusesViewModel: NearbyBusesViewModel by viewModels { NearbyBusesViewModel.Factory }
-
     private lateinit var binding: ActivityMainBinding
     private lateinit var navController: NavController
-
-    private lateinit var locationClient: FusedLocationProviderClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -75,10 +60,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         )
-
-        deviceLocationViewModel.currentLocation.observe(this) {
-            nearbyBusesViewModel.location = it
-        }
     }
 
     private fun hasPermissions(): Boolean {
@@ -114,37 +95,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun navigateToMainFragment() {
-        navController.navigate(NeedsPermissionsFragmentDirections.actionNeedsPermissionsFragmentToMainFragment())
-    }
-
-    @Deprecated("Use nav controller")
-    private fun showMainFragment() {
-        val mainFragment = MainFragment()
-
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, mainFragment)
-            .commitNow()
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun requestLocationUpdates(
-        client: FusedLocationProviderClient,
-        callback: () -> Unit = {},
-    ) {
-        val locationRequest = LocationRequest.Builder(10000)
-            .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
-            .build()
-
-        val callback = object : LocationCallback() {
-            override fun onLocationResult(result: LocationResult) {
-                Log.w(TAG, "locations - ${result.locations.size}")
-
-                for (location in result.locations) {
-                    Log.w(TAG, "location - ${location.latitude} @${location.time}")
-                }
-            }
+        if (navController.currentDestination?.id != R.id.mainFragment) {
+            navController.navigate(NeedsPermissionsFragmentDirections.actionNeedsPermissionsFragmentToMainFragment())
         }
-
-        client.requestLocationUpdates(locationRequest, callback, Looper.getMainLooper())
     }
 }

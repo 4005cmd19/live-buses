@@ -254,7 +254,7 @@ class TestDataProvider {
     }
 
     private fun randomLocation(): LatLngPoint {
-        val bounds = Locality.COVENTRY.location
+        val bounds = Locality.COVENTRY.bounds
 
         val rLat = Random.nextDouble(bounds.southwest.lat, bounds.northeast.lat)
         val rLng = Random.nextDouble(bounds.southwest.lng, bounds.northeast.lng)

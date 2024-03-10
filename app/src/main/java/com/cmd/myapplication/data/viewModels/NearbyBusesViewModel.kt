@@ -1,6 +1,5 @@
 package com.cmd.myapplication.data.viewModels
 
-import android.view.View
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -9,7 +8,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import com.cmd.myapplication.data.BusStop
 import com.cmd.myapplication.data.LatLngPoint
 import com.cmd.myapplication.data.Locality
-import com.cmd.myapplication.data.LocalityLocation
+import com.cmd.myapplication.data.LocalityBounds
 import com.cmd.myapplication.data.processors.closest
 import com.cmd.myapplication.data.processors.inArea
 
@@ -18,8 +17,6 @@ class NearbyBusesViewModel : ViewModel() {
     private val _busStops: MutableLiveData<List<BusStop>> by lazy { MutableLiveData(emptyList()) }
 
     val nearbyBusStops: LiveData<List<BusStop>> by lazy { MutableLiveData(emptyList()) }
-    val selectedBusStop: MutableLiveData<Pair<String, View>> by lazy { MutableLiveData(null) }
-
     var location: LatLngPoint?
         get() = _location.value
         set(value) {
@@ -44,12 +41,12 @@ class NearbyBusesViewModel : ViewModel() {
             return
         }
 
-        val locality = LocalityLocation.forLocation(location!!)
+        val locality = LocalityBounds.forLocation(location!!)
 
         if (locality == Locality.NOT_FOUND) {
 
         } else {
-            val bounds = locality.location
+            val bounds = locality.bounds
 
             val nearbyStops = busStops!!.inArea(bounds)
                 .closest(location!!)

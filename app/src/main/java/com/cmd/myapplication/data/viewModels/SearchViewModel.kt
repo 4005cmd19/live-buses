@@ -1,5 +1,6 @@
 package com.cmd.myapplication.data.viewModels
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -15,11 +16,13 @@ import com.cmd.myapplication.data.LatLngPoint
 import com.cmd.myapplication.data.Place
 import com.cmd.myapplication.data.PlaceSearchResult
 import com.cmd.myapplication.data.SearchResult
+import com.cmd.myapplication.data.processors.closest
 import com.cmd.myapplication.data.repositories.SearchRepository
 import com.cmd.myapplication.data.utils.SearchUtils
 import kotlinx.coroutines.launch
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
+import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
 class SearchViewModel(
@@ -29,9 +32,14 @@ class SearchViewModel(
     private val busLines: LiveData<List<BusLine>> by lazy { MutableLiveData(emptyList()) }
     private val busLineRoutes: LiveData<List<BusLineRoutes>> by lazy { MutableLiveData(emptyList()) }
 
-    private val autocompleteHandler = AutocompleteHandler(1000, ::processAutocompleteQuery)
+    private val autocompleteHandler = AutocompleteHandler(
+        1000,
+        ::processAutocompleteQuery
+    )
 
-    val searchText: MutableLiveData<String> by lazy { MutableLiveData(null) }
+    private var locationBias: LatLngPoint? = null
+
+    val searchText: MutableLiveData<String?> by lazy { MutableLiveData(null) }
 
     val searchResults: LiveData<List<SearchResult>> by lazy {
         MutableLiveData(
@@ -39,22 +47,27 @@ class SearchViewModel(
         )
     }
 
-    init {
-        autocompleteHandler.start()
-    }
-
     fun search(query: String, autocomplete: Boolean = true) {
-        if (autocomplete) {
-            autocompleteHandler.post(query)
+        if (locationBias == null) {
+            return
+        }
+
+        if (query.isNotEmpty()) {
+            if (autocomplete) {
+                autocompleteHandler.post(query, locationBias!!)
+            } else {
+                processSearchQuery(query, locationBias!!)
+            }
         } else {
-            processSearchQuery(query)
+            clearSearchResults()
         }
     }
 
-    fun resolveSearchResult(searchResult: PlaceSearchResult, callback: (place: Place?) -> Unit) = viewModelScope.launch {
-        val place = searchRepository.processPlaceSearchResult(searchResult)
-        callback(place)
-    }
+    fun resolveSearchResult(searchResult: PlaceSearchResult, callback: (place: Place?) -> Unit) =
+        viewModelScope.launch {
+            val place = searchRepository.processPlaceSearchResult(searchResult)
+            callback(place)
+        }
 
     fun supplyBusData(
         busStops: List<BusStop>,
@@ -66,36 +79,29 @@ class SearchViewModel(
         this.busLineRoutes.let { it as MutableLiveData }.value = busLineRoutes
     }
 
-    fun supplyLocation(location: LatLngPoint) {
-        autocompleteHandler.setLocationForAutocomplete(location)
+    fun setLocationBias(location: LatLngPoint) {
+        locationBias = location
     }
 
     // delegate this function to the autocomplete handler
     private fun processAutocompleteQuery(
         query: String,
-        location: LatLngPoint?,
-    ) =
-        viewModelScope.launch {
-            if (location == null) {
-                return@launch
-            }
+        location: LatLngPoint,
+    ) = viewModelScope.launch {
+        val places = searchRepository.autocompleteSearch(query, location).toTypedArray()
+        val busData = searchBusData(query, location).toTypedArray()
 
-            searchText.value = query
+        val results = listOf(
+            *places,
+            *busData
+        )
 
-            val places = searchRepository.autocompleteSearch(query, location).toTypedArray()
-            val busData = searchBusData(query).toTypedArray()
+        updateSearchResults(results)
+    }
 
-            val results = listOf(
-                *places,
-                *busData
-            )
-
-            updateSearchResults(results)
-        }
-
-    private fun processSearchQuery(query: String) = viewModelScope.launch {
-        val places = searchRepository.search(query).toTypedArray()
-        val busData = searchBusData(query).toTypedArray()
+    private fun processSearchQuery(query: String, location: LatLngPoint) = viewModelScope.launch {
+        val places = searchRepository.search(query, location).toTypedArray()
+        val busData = searchBusData(query, location).toTypedArray()
 
         val results = listOf(
             *places,
@@ -109,8 +115,13 @@ class SearchViewModel(
         searchResults.let { it as MutableLiveData }.value = results
     }
 
-    private fun searchBusData (query: String): List<SearchResult> {
-        val busStops = searchBusStops(query).toTypedArray()
+    private fun clearSearchResults() {
+        autocompleteHandler.consumeQuery()
+        searchResults.let { it as MutableLiveData }.value = emptyList()
+    }
+
+    private fun searchBusData(query: String, location: LatLngPoint): List<SearchResult> {
+        val busStops = searchBusStops(query, location).toTypedArray()
         val busLineRoutes = searchBusRoutes(query).toTypedArray()
 
         return listOf(
@@ -119,10 +130,12 @@ class SearchViewModel(
         )
     }
 
-    private fun searchBusStops(query: String): List<BusStop> {
+    private fun searchBusStops(query: String, location: LatLngPoint): List<BusStop> {
         val busStops = busStops.value ?: emptyList()
 
-        return busStops.filter { SearchUtils.isMatch(query, it.displayName) }
+        return busStops.filter {
+            SearchUtils.isMatch(query, it.displayName)
+        }.closest(location, MAX_BUS_STOP_RESULT_COUNT)
     }
 
     private fun searchBusRoutes(query: String): List<BusLineRouteSearchResult> {
@@ -142,101 +155,164 @@ class SearchViewModel(
 
                 if (line != null) BusLineRouteSearchResult(line, it) else null
             }
-        }.filterNotNull()
+        }.filterNotNull().take(MAX_BUS_LINE_ROUTE_RESULT_COUNT)
     }
 
     override fun onCleared() {
         super.onCleared()
 
-        autocompleteHandler.stop()
+        searchRepository.saveCache()
     }
 
-    private inner class AutocompleteHandler(
+    /**
+     * Autocomplete request handler that executes autocomplete queries on a short interval schedule
+     * to avoid calling the [PlacesApiAdapter] too often.
+     * @param intervalMs The interval in milliseconds between each API call.
+     * @param autocompleteFn The function that calls the API.
+     */
+    private class AutocompleteHandler(
         val intervalMs: Long,
-        autocompleteFn: (query: String, location: LatLngPoint?) -> Unit,
+        autocompleteFn: (query: String, location: LatLngPoint) -> Unit,
     ) {
-        var next: QueryParams = QueryParams()
-            private set
-        var last: QueryParams = QueryParams()
+        val TAG = "AutocompleteHandler"
+        val SCHEDULER_TAG = "ACH::Ping"
+
+        // next query
+        var next: QueryParams? = null
             private set
 
-        private var autocompleteLocation: LatLngPoint? = null
+        // last query, used to check if next is different
+        var last: QueryParams? = null
+            private set
 
+        // true if the next query should be executed
         private var isPending = false
 
-        private val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
+        // scheduler
+        private var scheduledExecutor: ScheduledExecutorService? = null
         private val queryExecutor = Executors.newSingleThreadExecutor()
 
+        // executed by queryExecutor
         private val autocompleteRunnable: Runnable
 
+        // used to track if the queryExecutor is free or still handling the last request
         private var runnableFuture: Future<*>? = null
 
         init {
             this.autocompleteRunnable = wrapRunnable(autocompleteFn)
         }
 
-        // post a new query
-        fun post(query: String, forceDispatch: Boolean = false) {
+        /**
+         * Post a new query to be executed. This query will only be executed if it's different
+         * from the last or if [forceDispatch] is true.
+         * @param query Query to be posted.
+         * @param location Used to bias the API to give results close to the user.
+         * @param forceDispatch True if the query should be dispatched even it it's not different
+         * from the last.
+         */
+        fun post(query: String, location: LatLngPoint, forceDispatch: Boolean = false) {
             this.next = QueryParams(
                 query,
-                autocompleteLocation
+                location
             )
 
             dispatch(forceDispatch)
         }
 
-        fun setLocationForAutocomplete(location: LatLngPoint) {
-            autocompleteLocation = location
-        }
-
+        /**
+         * Flag the next query as executable.
+         * @param force True if the query should be dispatched even it it's not different from the
+         * last.
+         */
         private fun dispatch(force: Boolean = false) {
-            val canDispatch = with(next) { !(query == null || location == null) }
+            // check that there is a query to dispatch
+            val canDispatch = next != null
 
             if (canDispatch) {
                 // check if new query is different from last
-                isPending =
-                    (next.query != last.query && !next.location!!.approxEquals(last.location)) || force
+                isPending = next!!.query != last?.query
+                        || !next!!.location.approxEquals(last?.location)
+                        || force // or force dispatch
             } else {
                 isPending = false
             }
+
+            // restart the scheduler if needed
+            startOrResume()
         }
 
-        private fun dispatchQuery() {
+        /**
+         * Mark the posted query as executed.
+         */
+        fun consumeQuery() {
             isPending = false
             last = next
-            next = QueryParams()
+            next = null
         }
 
-        private fun wrapRunnable(block: (query: String, location: LatLngPoint?) -> Unit) =
+        /**
+         * Utility function - wrap autocomplete function in a runnable.
+         * @param block The autocomplete function
+         */
+        private fun wrapRunnable(block: (query: String, location: LatLngPoint) -> Unit) =
             Runnable {
-                block(next.query!!, next.location)
+                // redundancy not null check
+                checkNotNull(next)
 
-                dispatchQuery()
+                block(next!!.query, next!!.location)
+
+                consumeQuery()
             }
 
-        fun start() {
-            scheduledExecutor.scheduleAtFixedRate(
+        private fun startOrResume () {
+            if(scheduledExecutor == null) {
+                start()
+            }
+        }
+
+        /**
+         * Start the scheduler.
+         */
+        private fun start() {
+            Log.e(TAG, "starting")
+            scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
+            scheduledExecutor!!.scheduleAtFixedRate(
                 {
-                    if (runnableFuture?.isDone == true) {
-                        runnableFuture = queryExecutor.submit(autocompleteRunnable)
+                    val isExecutorAvailable =
+                        runnableFuture?.isDone == true || runnableFuture == null
+
+                    if (isPending) {
+                        if (isExecutorAvailable) {
+                            // if can run next query, run it
+                            runnableFuture = queryExecutor.submit(autocompleteRunnable)
+                        }
+                    } else if (isExecutorAvailable) {
+                        // if none pending and executor is free -> shut it down
+                        stop()
                     }
                 }, 0, intervalMs, TimeUnit.MILLISECONDS
             )
         }
 
-        fun stop() {
-            scheduledExecutor.shutdownNow()
+        /**
+         * Stop the scheduler.
+         */
+        private fun stop() {
+            scheduledExecutor?.shutdownNow()
+            scheduledExecutor = null
         }
     }
 
     private data class QueryParams(
-        val query: String? = null,
-        val location: LatLngPoint? = null,
-        val isAutocomplete: Boolean = true,
+        val query: String,
+        val location: LatLngPoint,
     )
 
     companion object {
         const val TAG = "SearchViewModel"
+
+        const val MAX_BUS_STOP_RESULT_COUNT = 20
+        const val MAX_BUS_LINE_ROUTE_RESULT_COUNT = 20
 
         val Factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {

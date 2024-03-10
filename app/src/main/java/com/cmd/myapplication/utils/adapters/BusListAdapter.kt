@@ -25,6 +25,7 @@ class BusListAdapter(
         val lineNameView: Tag = view.findViewById(R.id.line_name_view)
         val stopNameView: TextView = view.findViewById(R.id.stop_name_view)
         val destinationNameView: TextView = view.findViewById(R.id.destination_name_view)
+        val routeNameView: TextView = view.findViewById(R.id.route_name_view)
         val arrivalTimeView: TextView = view.findViewById(R.id.arrival_time_view)
     }
 
@@ -61,6 +62,7 @@ class BusListAdapter(
             lineNameView.text = data.line
             stopNameView.text = data.stop
             destinationNameView.text = data.destination
+            routeNameView.text = data.routeName
             arrivalTimeView.text = busList[position].arrivalTime
         }
 

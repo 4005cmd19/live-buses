@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.MyApplication" parent="Theme.Material3.DayNight.NoActionBar">
+        // component styles
         <item name="tagStyle">@style/Tag</item>
+        <item name="materialCardViewFilledStyle">@style/MaterialCardView.Filled</item>
+        <item name="materialCardViewElevatedStyle">@style/MaterialCardView.Elevated</item>
+        <item name="materialCardViewOutlinedStyle">@style/MaterialCardView.Outlined</item>
     </style>
 
     <style name="SearchView" parent="Theme.MyApplication">

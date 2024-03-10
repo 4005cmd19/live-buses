@@ -15,4 +15,8 @@
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="bus_stops_heading">Stops</string>
     <string name="bus_stop_tag">Bus Stop</string>
+    <string name="close_bottom_sheet_hint">Tap back to close</string>
+    <string name="bus_list_operator_name_view_prefix"><i>Operated by</i> %1$s</string>
+    <string name="search_hint">Start typing to search for bus stops, bus routes or places</string>
+    <string name="bus_list_hint">Tap a card to show more info</string>
 </resources>

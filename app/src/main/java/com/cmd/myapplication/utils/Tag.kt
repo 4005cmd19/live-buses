@@ -1,5 +1,6 @@
 package com.cmd.myapplication.utils
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.Drawable
@@ -13,6 +14,7 @@ import com.google.android.material.card.MaterialCardView
 import com.google.android.material.shape.ShapeAppearanceModel
 import com.google.android.material.shape.Shapeable
 
+@SuppressLint("RestrictedApi")
 class Tag(
     context: Context,
     attrs: AttributeSet?,
@@ -80,9 +82,11 @@ class Tag(
             R.attr.tagStyle, R.style.Tag
         ).apply {
             try {
+                val minWidth = getDimension(R.styleable.Tag_minWidth, 0f)
+
                 val backgroundColor =
                     getColor(R.styleable.Tag_backgroundColor, Color.RED)
-                val textColor = getColor(R.styleable.Tag_foregroundColor, Color.BLACK)
+                val foregroundColor = getColor(R.styleable.Tag_foregroundColor, Color.BLACK)
 
                 val text = getText(R.styleable.Tag_text)
                 val icon = getDrawable(R.styleable.Tag_icon)
@@ -91,10 +95,20 @@ class Tag(
                     ShapeAppearanceModel.builder(context, attrs, defStyleAttr, defStyleRes)
                         .build()
 
+                val textAppearanceResId = getResourceId(R.styleable.Tag_android_textAppearance, -1)
+
+                tagTextView.minWidth = minWidth.toInt()
+
+                Log.e("TAG", "ta - $textAppearanceResId")
+
+                if (textAppearanceResId != -1) {
+                    tagTextView.setTextAppearance(textAppearanceResId)
+                }
+
                 setShapeAppearanceModel(shapeAppearanceModel)
 
                 setBackgroundColor(backgroundColor)
-                this@Tag.foregroundColor = textColor
+                this@Tag.foregroundColor = foregroundColor
 
                 if (text != null) {
                     this@Tag._text = text

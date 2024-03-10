@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:minHeight="128dp"
-    android:layout_marginHorizontal="16dp"
-    android:layout_marginVertical="8dp"
     style="@style/Widget.Material3.CardView.Filled"
-    android:background="#20ff0000">
+    android:layout_width="wrap_content"
+    android:layout_height="128dp"
+    android:layout_marginHorizontal="8dp"
+    android:background="#20ff0000"
+    android:minWidth="128dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -16,27 +15,54 @@
 
         <com.cmd.myapplication.utils.Tag
             android:id="@+id/line_name_view"
+            style="?textAppearanceTitleLarge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/line_operator_view"
-            app:layout_constraintTop_toTopOf="parent"
-            style="?textAppearanceTitleLarge"/>
+            app:layout_constraintTop_toTopOf="@id/destination_name_view"
+            app:layout_constraintBottom_toBottomOf="@id/destination_name_view"/>
 
         <TextView
-            android:id="@+id/line_route_name_view"
-            app:layout_constraintTop_toTopOf="parent"
+            android:id="@+id/destination_name_view"
+            style="@style/TextAppearance.Material3.TitleSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="8dp"
+            android:ellipsize="end"
+            android:gravity="start|center_vertical"
+            android:lines="2"
+            android:maxEms="5"
+            android:maxLines="2"
+            android:textColor="?attr/colorOnPrimaryContainer"
             app:layout_constraintLeft_toRightOf="@id/line_name_view"
-            android:layout_width="0dp"
             app:layout_constraintRight_toRightOf="parent"
-            android:layout_height="wrap_content"/>
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <androidx.constraintlayout.widget.Barrier
+            android:id="@+id/barrier"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:barrierDirection="bottom"
+            app:constraint_referenced_ids="line_name_view,destination_name_view" />
+
+        <TextView
+            android:id="@+id/route_name_view"
+            style="@style/TextAppearance.Material3.BodySmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Route name here"
+            android:textColor="?attr/colorOnPrimaryContainer"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/barrier" />
 
         <TextView
             android:id="@+id/line_operator_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/line_name_view"
-            style="?textAppearanceBodyLarge"/>
+            android:layout_marginTop="8dp"
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:textStyle="italic"
+            app:layout_constraintTop_toBottomOf="@id/route_name_view" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>

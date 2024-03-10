@@ -6,28 +6,20 @@
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
     android:layout_marginVertical="8dp"
-    android:background="#20ff0000"
-    android:minHeight="128dp">
+    app:cardBackgroundColor="?colorPrimaryContainer">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:padding="16dp">
 
-        <com.cmd.myapplication.utils.Tag
-            android:id="@+id/tag"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:text="@string/bus_stop_tag" />
 
         <TextView
             android:id="@+id/stop_name_view"
-            style="?textAppearanceTitleLarge"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            app:layout_constraintLeft_toRightOf="@id/tag"
+            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+            app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -35,15 +27,15 @@
             android:id="@+id/bus_lines_list_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:layout_marginRight="8dp"
             app:constraint_referenced_ids="tag1,tag2,tag3,tag4,tag5"
-            app:flow_horizontalGap="4dp"
-            app:flow_horizontalStyle="packed"
-            app:flow_verticalGap="4dp"
-            android:layout_marginTop="8dp"
             app:flow_horizontalAlign="start"
             app:flow_horizontalBias="0"
+            app:flow_horizontalGap="4dp"
+            app:flow_horizontalStyle="packed"
             app:flow_maxElementsWrap="5"
+            app:flow_verticalGap="4dp"
             app:flow_verticalStyle="packed"
             app:flow_wrapMode="chain"
             app:layout_constraintLeft_toLeftOf="parent"
@@ -51,37 +43,37 @@
 
         <com.cmd.myapplication.utils.Tag
             android:id="@+id/tag1"
+            style="@style/Tag.Small.Start"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            style="@style/Tag.Start"
             app:text="Hello" />
 
         <com.cmd.myapplication.utils.Tag
             android:id="@+id/tag2"
+            style="@style/Tag.Small.Intermediate"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            style="@style/Tag.Intermediate"
             app:text="Hello2" />
 
         <com.cmd.myapplication.utils.Tag
             android:id="@+id/tag3"
+            style="@style/Tag.Small.Intermediate"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            style="@style/Tag.Intermediate"
 
             app:text="Hello2" />
 
         <com.cmd.myapplication.utils.Tag
             android:id="@+id/tag4"
+            style="@style/Tag.Small.Intermediate"
             android:layout_width="wrap_content"
-            style="@style/Tag.Intermediate"
             android:layout_height="wrap_content"
             app:text="Hello2" />
 
         <com.cmd.myapplication.utils.Tag
             android:id="@+id/tag5"
+            style="@style/Tag.Small.End"
             android:layout_width="wrap_content"
-            style="@style/Tag.End"
             android:layout_height="wrap_content"
             app:text="Hello2" />
     </androidx.constraintlayout.widget.ConstraintLayout>

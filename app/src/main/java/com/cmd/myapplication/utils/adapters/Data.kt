@@ -7,6 +7,7 @@ data class BusData(
     val line: CharSequence,
     val stop: CharSequence,
     val destination: CharSequence,
+    val routeName: CharSequence,
     val arrivalTime: String,
 )
 
@@ -24,6 +25,7 @@ data class BusRouteData(
 
     val lineName: String,
     val routeName: String,
+    val routeDestinationName: String,
 
     val operatorName: String,
 ) : SearchResultData

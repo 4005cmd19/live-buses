@@ -2,12 +2,13 @@ package com.cmd.myapplication
 
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroup.MarginLayoutParams
 import android.widget.Button
 import android.widget.TextView
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.addCallback
 import androidx.core.view.OnApplyWindowInsetsListener
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -20,7 +21,6 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.viewpager2.widget.ViewPager2
 import com.cmd.myapplication.data.viewModels.BusDataViewModel
-import com.cmd.myapplication.data.viewModels.NearbyBusesViewModel
 import com.cmd.myapplication.utils.adapters.LinePagerAdapter
 import com.google.android.material.motion.MotionUtils
 import com.google.android.material.tabs.TabLayout
@@ -30,9 +30,9 @@ import com.google.android.material.transition.MaterialFade
 
 class StopFragment : Fragment(R.layout.fragment_stop) {
     private val args: StopFragmentArgs by navArgs()
+    private val sharedViewModel: SharedViewModel by activityViewModels { SharedViewModel.Factory }
 
     private val busDataViewModel: BusDataViewModel by activityViewModels { BusDataViewModel.Factory }
-    private val nearbyBusesViewModel: NearbyBusesViewModel by activityViewModels { NearbyBusesViewModel.Factory }
 
     private lateinit var stopNameView: TextView
     private lateinit var closeButton: Button
@@ -40,6 +40,8 @@ class StopFragment : Fragment(R.layout.fragment_stop) {
     private lateinit var lineViewPager: ViewPager2
 
     private lateinit var lineViewPagerAdapter: LinePagerAdapter
+
+    private lateinit var onBackPressedCallback: OnBackPressedCallback
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -125,8 +127,6 @@ class StopFragment : Fragment(R.layout.fragment_stop) {
         val lines = busDataViewModel.busLines.value?.filter { it.stops.contains(stop?.id) }
         val lineNames = lines?.map { it.displayName }
 
-        Log.w(TAG, "stopId=${args.stopId} lineId=${args.lineId} lines=${lineNames?.joinToString()}")
-
         lineViewPagerAdapter.lineIds.addAll(lines?.map { it.id } ?: emptyList())
         lineViewPagerAdapter.notifyItemRangeInserted(0, lines?.size ?: 0)
 
@@ -157,6 +157,21 @@ class StopFragment : Fragment(R.layout.fragment_stop) {
         closeButton.setOnClickListener {
             findNavController().navigateUp()
         }
+
+        sharedViewModel.isBottomSheetDraggable.value = false
+        sharedViewModel.isMainBackPressedCallbackEnabled.value = false
+        sharedViewModel.isInSearchMode.value = true
+
+        onBackPressedCallback = requireActivity().onBackPressedDispatcher.addCallback {
+            findNavController().navigateUp()
+        }
+        onBackPressedCallback.isEnabled = true
+    }
+
+    override fun onDestroyView() {
+        onBackPressedCallback.isEnabled = false
+
+        super.onDestroyView()
     }
 
     companion object {

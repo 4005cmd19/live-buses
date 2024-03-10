@@ -6,7 +6,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroup.MarginLayoutParams
-import android.widget.Button
 import android.widget.TextView
 import androidx.constraintlayout.helper.widget.Flow
 import androidx.core.view.ViewCompat
@@ -46,7 +45,6 @@ class BusStopListAdapter(
         val context: Context = view.context
         val stopNameView: TextView = view.findViewById(R.id.stop_name_view)
         val linesListView: Flow = view.findViewById(R.id.bus_lines_list_view)
-        val expandButton: Button = view.findViewById(R.id.expand_button)
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -100,7 +98,7 @@ class BusStopListAdapter(
             // required for navigation transition between BusListFragment and StopFragment
             view.transitionName = busStops[position].id
 
-            expandButton.setOnClickListener {
+            view.setOnClickListener {
                 onExpandListener?.onExpand(
                     holder.view,
                     position,

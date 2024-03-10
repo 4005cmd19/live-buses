@@ -28,14 +28,6 @@ class ScrollableHost(
     override fun onOverScrolled(scrollX: Int, scrollY: Int, clampedX: Boolean, clampedY: Boolean) {
         onOverScrolledListener?.onOverScrolled(scrollX, scrollY, clampedX, clampedY)
 
-        if (clampedY == true) {
-//            Log.e("OS", "overscroll - $scrollY clamped=$clampedY")
-//            isScrollable = false
-        }
-        else {
-            isScrollable = true
-        }
-
         super.onOverScrolled(scrollX, scrollY, clampedX, clampedY)
     }
 
@@ -44,7 +36,7 @@ class ScrollableHost(
     }
 
     override fun onInterceptTouchEvent(e: MotionEvent): Boolean {
-        return super.onInterceptTouchEvent(e)//false //isScrollable && super.onInterceptTouchEvent(e)
+        return isScrollable && super.onInterceptTouchEvent(e)//false //isScrollable && super.onInterceptTouchEvent(e)
     }
 
     fun setOnOverScrolledListener (listener: OnOverScrolledListener?) {

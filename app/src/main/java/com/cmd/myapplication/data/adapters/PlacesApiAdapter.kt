@@ -1,25 +1,22 @@
 package com.cmd.myapplication.data.adapters
 
 import android.app.Application
-import android.util.Log
 import com.cmd.myapplication.data.LatLngPoint
 import com.cmd.myapplication.data.LatLngRect
+import com.cmd.myapplication.data.Locality
+import com.cmd.myapplication.data.LocalityBounds
 import com.cmd.myapplication.data.PlaceSearchResult
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.tasks.Tasks
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.AutocompleteSessionToken
 import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.api.model.PlaceTypes
 import com.google.android.libraries.places.api.model.RectangularBounds
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
 import com.google.android.libraries.places.api.net.PlacesClient
 import com.google.android.libraries.places.api.net.SearchByTextRequest
-import com.google.gson.Gson
-import java.net.HttpURLConnection
-import java.net.URL
-
-import com.cmd.myapplication.data.Place as PlaceData
 
 class PlacesApiAdapter(
     application: Application,
@@ -36,9 +33,21 @@ class PlacesApiAdapter(
         location: LatLngPoint,
         token: AutocompleteSessionToken,
     ): List<PlaceSearchResult> {
+        val bias = LocalityBounds.forLocation(location)
+
         val request = FindAutocompletePredictionsRequest.builder().apply {
+            // set to receive distance from origin from the api
+            // allows sorting by closest
             origin = location.toLatLng()
+
+            // bias the api to give results for locations closest to the user first
+            if (bias != Locality.NOT_FOUND) {
+                locationBias = bias.bounds.toRectangularBounds()
+            }
+
+            // ensure results are in the uk
             countries = listOf("GB")
+
             sessionToken = token
             this.query = query
         }.build()
@@ -64,62 +73,53 @@ class PlacesApiAdapter(
         }
     }
 
-    fun search(query: String): List<PlaceData> {
+    fun search(query: String, location: LatLngPoint): List<PlaceSearchResult> {
+        val bias = LocalityBounds.forLocation(location)
+
         val request = SearchByTextRequest.builder(
             query,
-            listOf(Place.Field.ID, Place.Field.NAME, Place.Field.ADDRESS, Place.Field.LAT_LNG)
-        ).build()
-
-        return Tasks.await(client.searchByText(request))?.places?.map {
-            PlaceData(
-                it.id!!,
-                it.name!!,
-                it.address!!,
-                it.latLng!!.let { LatLngPoint(it.longitude, it.longitude) }
+            listOf(
+                Place.Field.ID,
+                Place.Field.NAME,
+                Place.Field.ADDRESS,
+                Place.Field.LAT_LNG,
+                Place.Field.TYPES
             )
-        } ?: emptyList()
-    }
+        ).apply {
+            maxResultCount = MAX_RESULT_COUNT
 
-    @Deprecated("Use search")
-    fun doTextQuery(query: String) {
-        val connection =
-            URL(TEXT_QUERY_URL).openConnection().let { it as HttpURLConnection }.apply {
-                requestMethod = "POST"
-                doOutput = true
-                setRequestProperty("content-type", "application/json")
-                setRequestProperty("X-Goog-Api-Key", API_KEY)
-                setRequestProperty(
-                    "X-Goog-FieldMask",
-                    "places.id,places.displayName,places.formattedAddress,places.location"
-                )
-
-                val requestData = createTextQuery(query)
-
-                outputStream.write(requestData.toByteArray())
-                outputStream.flush()
-                outputStream.close()
+            if (bias != Locality.NOT_FOUND) {
+                locationBias = bias.bounds.toRectangularBounds()
             }
+        }.build()
 
-        if (connection.errorStream != null) {
-            Log.e(TAG, "error - ${String(connection.errorStream.readBytes())}")
-        }
-
-        val result = connection.inputStream.readBytes()
-        Log.e(TAG, "result - ${String(result, Charsets.UTF_8)}")
+        return Tasks.await(client.searchByText(request))?.places
+            ?.filterNot {
+                it.placeTypes?.contains(PlaceTypes.BUS_STATION) == true || it.placeTypes?.contains("bus_stop") == true || it.placeTypes?.contains(
+                    PlaceTypes.TRANSIT_STATION
+                ) == true
+            }
+            ?.map {
+                PlaceSearchResult(
+                    it.id!!,
+                    it.name!!,
+                    it.address!!,
+                    -1
+                )
+            } ?: emptyList()
     }
-
-    private fun createTextQuery(query: String) = Gson().toJson(object {
-        val textQuery = query
-    })
 
     companion object {
-        const val TAG = "PlacesDataSource"
+        const val TAG = "PlacesApiAdapter"
 
-        const val TEXT_QUERY_URL = "https://places.googleapis.com/v1/places:searchText"
         const val API_KEY = "AIzaSyBVnEB4WLSxuZ-DLPzB42OBz0heU5J7OHo"
 
+        const val MAX_RESULT_COUNT = 20
+
+        // convenience function - converts to google maps api LatLng
         private fun LatLngPoint.toLatLng() = LatLng(lat, lng)
 
+        // convenience function - converts to google maps api RectangularBounds
         private fun LatLngRect.toRectangularBounds() = RectangularBounds.newInstance(
             southwest.toLatLng(),
             northeast.toLatLng()

@@ -8,6 +8,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.withContext
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 @Deprecated("Use BusDataRepository")
 abstract class Repository<T>() {
@@ -65,6 +67,9 @@ abstract class BusDataRepository<T, U : Meta>(
      */
     protected abstract val metaTopicTemplate: String
 
+    // used to timeout synchronous requests
+    private val timeoutHandler = Executors.newSingleThreadScheduledExecutor()
+
     /**
      * Request bus data asynchronously.
      * @param ids IDs of bus stops or bus lines to request.
@@ -90,12 +95,13 @@ abstract class BusDataRepository<T, U : Meta>(
     }
 
     /**
-     * Request data in a synchronously. Once the data for a requested ID is received the MQTT client
+     * Request data synchronously. Once the data for a requested ID is received the MQTT client
      * unsubscribes from the corresponding topic.
      * @param ids IDs of bus stops or bus lines to request.
+     * @param timeout How long, in milliseconds, to wait for data.
      * @see requestAsync
      */
-    suspend fun request(ids: Array<String>) = withContext(Dispatchers.IO) {
+    suspend fun request(ids: Array<String>, timeout: Long = 0) = withContext(Dispatchers.IO) {
         return@withContext with(CompletableFuture<List<T>>()) {
             val receivedIds = mutableSetOf<String>()
             val receivedData = mutableSetOf<T>()
@@ -111,6 +117,10 @@ abstract class BusDataRepository<T, U : Meta>(
                 if (receivedIds.size == ids.toSet().size) {
                     complete(receivedData.toList())
                 }
+            }
+
+            if (timeout > 0) {
+                timeoutHandler.schedule({ complete(emptyList()) }, timeout, TimeUnit.MILLISECONDS)
             }
 
             await()
@@ -130,9 +140,10 @@ abstract class BusDataRepository<T, U : Meta>(
     /**
      * Request all data synchronously. Particularly useful when populating [BusDataViewModel] to
      * guarantee that all available data has been received.
+     * @param timeout How long, in milliseconds, to wait for data.
      * @see requestAllAsync
      */
-    suspend fun requestAll() = withContext(Dispatchers.IO) {
+    suspend fun requestAll(timeout: Long = 0) = withContext(Dispatchers.IO) {
         return@withContext with(CompletableFuture<List<T>>()) {
             val metaTopic = TopicTemplate.fill(metaTopicTemplate)
 
@@ -149,6 +160,11 @@ abstract class BusDataRepository<T, U : Meta>(
 
                 Log.e(TAG, "received meta - size=$size")
 
+                if (size == 0) {
+                    // no data
+                    complete(emptyList())
+                }
+
                 requestAllAsync { id, data ->
                     if (!receivedIds.contains(id)) {
                         receivedIds.add(id)
@@ -159,6 +175,14 @@ abstract class BusDataRepository<T, U : Meta>(
                         ignoreAll()
                         complete(receivedData.toList())
                     }
+                }
+
+                if (timeout > 0) {
+                    timeoutHandler.schedule(
+                        { complete(emptyList()) },
+                        timeout,
+                        TimeUnit.MILLISECONDS
+                    )
                 }
             }
 

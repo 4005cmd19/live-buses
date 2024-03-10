@@ -6,9 +6,9 @@ import kotlin.math.sqrt
 // NW 52.46307 -1.58341
 // SE 52.36034 -1.40351
 
-object LocalityLocation {
+object LocalityBounds {
     fun forLocation(location: LatLngPoint): Locality {
-        val filtered = Locality.entries.filter { isInBounds(location, it.location) }
+        val filtered = Locality.entries.filter { isInBounds(location, it.bounds) }
 
         return if (filtered.isNotEmpty()) filtered.first() else Locality.NOT_FOUND
     }
@@ -19,7 +19,7 @@ object LocalityLocation {
     }
 }
 
-enum class Locality(val location: LatLngRect) {
+enum class Locality(val bounds: LatLngRect) {
     COVENTRY(
         LatLngRect(
             LatLngPoint(52.36034, -1.58341),
@@ -56,6 +56,11 @@ data class LatLngPoint(
 
         return sqrt(dx * dx + dy * dy)
     }
+
+    fun with(orientation: Orientation) = LatLngOrientation(
+        lat, lng,
+        orientation.minusZ, orientation.x, orientation.y
+    )
 }
 
 data class LatLngRect(
@@ -86,6 +91,87 @@ data class LatLngRect(
         )
 }
 
+data class LatLngOrientation(
+    var lat: Double,
+    var lng: Double,
+    var minusZ: Float,
+    val x: Float,
+    var y: Float,
+) {
+    override operator fun equals (other: Any?): Boolean {
+        if (other !is LatLngOrientation) {
+            return false
+        }
+
+        val (l, o) = split()
+        val (otherL, otherO) = other.split()
+
+        return l == otherL && o == otherO
+    }
+
+    fun approxEquals(other: LatLngOrientation?): Boolean {
+        if (other == null){
+            return false
+        }
+
+        return split().first.approxEquals(other.split().first)
+                && split().second.approxEquals(other.split().second)
+    }
+
+    fun split(): Pair<LatLngPoint, Orientation> = LatLngPoint(lat, lng) to Orientation(minusZ, x, y)
+
+    companion object {
+        fun from(location: LatLngPoint, orientation: Orientation) = LatLngOrientation(
+            location.lat,
+            location.lng,
+            orientation.minusZ,
+            orientation.x,
+            orientation.y
+        )
+    }
+}
+
+data class Orientation(
+    var minusZ: Float,
+    val x: Float,
+    var y: Float,
+) {
+    override operator fun equals(other: Any?): Boolean {
+        if (other !is Orientation) {
+            return false
+        }
+
+        return minusZ == other.minusZ && x == other.x && y == other.y
+    }
+
+    fun approxEquals (other: Orientation?): Boolean {
+        if (other == null) {
+            return false
+        }
+
+        return minusZ.approxEquals(other.minusZ)
+                && x.approxEquals(other.x)
+                && y.approxEquals(other.y)
+    }
+
+    fun with(location: LatLngPoint) = LatLngOrientation(
+        location.lat, location.lng,
+        minusZ, x, y
+    )
+
+    fun toFloatArray () = floatArrayOf(minusZ, x, y)
+
+    private fun Float.approxEquals(other: Float, epsilon: Double = 1e-2) = other - this <= epsilon
+
+    companion object {
+        fun fromFloatArray (array: FloatArray) = Orientation(
+            array[0],
+            array[1],
+            array[2]
+        )
+    }
+}
+
 /**
  * Implemented by data classes that can be returned by a search in [SearchViewModel]
  */
@@ -101,7 +187,7 @@ data class BusStop(
     var displayName: String,
     var location: LatLngPoint,
     var lines: Set<String>,
-): SearchResult
+) : SearchResult
 
 data class BusLine(
     var id: String,
@@ -114,7 +200,7 @@ data class BusLine(
 data class BusLineRoutes(
     var lineId: String,
     var routes: Set<BusLineRoute>,
-): SearchResult
+) : SearchResult
 
 data class BusLineRoute(
     var id: String,
@@ -171,28 +257,28 @@ data class PlaceSearchResult(
     val distance: Int,
 ) : SearchResult
 
-data class Place (
+data class Place(
     val id: String,
     val name: String,
     val address: String,
     val location: LatLngPoint,
-): SearchResult
+) : SearchResult
 
-data class BusStopMetadata (
-    override val size: Int
-): Meta
+data class BusStopMetadata(
+    override val size: Int,
+) : Meta
 
-data class BusLineMetadata (
-    override val size: Int
-): Meta
+data class BusLineMetadata(
+    override val size: Int,
+) : Meta
 
-data class BusLineRoutesMetadata (
-    override val size: Int
-): Meta
+data class BusLineRoutesMetadata(
+    override val size: Int,
+) : Meta
 
 data class BusArrivalMetadata(
-    override val size: Int
-): Meta
+    override val size: Int,
+) : Meta
 
 /*
 

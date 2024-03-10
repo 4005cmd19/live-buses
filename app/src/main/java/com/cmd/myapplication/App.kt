@@ -33,7 +33,8 @@ class App : Application() {
         busStopsRepository = BusStopsRepository(remoteDataSource)
         busRoutesRepository = BusRoutesRepository(remoteDataSource)
 
-        searchRepository = SearchRepository(placesDataSource)
+        searchRepository = SearchRepository(applicationContext, placesDataSource)
+        searchRepository.loadCache()
 
 //        with(TestDataProvider()) {
 //            val (stops, lines, routes) = generateTestData()

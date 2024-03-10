@@ -7,12 +7,15 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 
 class SharedViewModel : ViewModel() {
+    // bottom sheet properties
     val bottomSheetState: MutableLiveData<Int> by lazy { MutableLiveData(BottomSheetBehavior.STATE_COLLAPSED) }
     val bottomSheetOffset: MutableLiveData<Float> by lazy { MutableLiveData(0f) }
     val isBottomSheetDraggable: MutableLiveData<Boolean> by lazy { MutableLiveData(true) }
-    val isBottomSheetScrollable: MutableLiveData<Boolean> by lazy { MutableLiveData(false) }
 
-    val isSearchFragmentVisible: MutableLiveData<Boolean> by lazy { MutableLiveData(false) }
+    // main fragment state properties
+    val isMainBackPressedCallbackEnabled: MutableLiveData<Boolean> by lazy { MutableLiveData(true) }
+    val searchBarHasFocus: MutableLiveData<Boolean> by lazy { MutableLiveData(false) }
+    val isInSearchMode: MutableLiveData<Boolean> by lazy { MutableLiveData(false) }
 
     companion object {
         const val TAG = "SharedViewModel"

@@ -2,10 +2,37 @@
     <style name="RecenterButton" parent="Widget.Material3.Button.TonalButton">
     </style>
 
+    // cards
+    <style name="MaterialCardView">
+
+    </style>
+
+    <style name="MaterialCardView.Filled" parent="Widget.Material3.CardView.Filled">
+        <item name="shapeAppearance">@style/MaterialCardView.ShapeAppearance</item>
+    </style>
+
+    <style name="MaterialCardView.Outlined" parent="Widget.Material3.CardView.Outlined">
+        <item name="shapeAppearance">@style/MaterialCardView.ShapeAppearance</item>
+    </style>
+
+    <style name="MaterialCardView.Elevated" parent="Widget.Material3.CardView.Elevated">
+        <item name="shapeAppearance">@style/MaterialCardView.ShapeAppearance</item>
+    </style>
+
+    <style name="MaterialCardView.ShapeAppearance" parent="ShapeAppearance.Material3.Corner.ExtraLarge"/>
+
+    // tag
     <style name="Tag">
         <item name="backgroundColor">?attr/colorPrimary</item>
         <item name="foregroundColor">?attr/colorOnPrimary</item>
-        <item name="shapeAppearance">@style/ShapeAppearance.Material3.LargeComponent</item>
+        <item name="shapeAppearance">@style/Tag.ShapeAppearance</item>
+        <item name="android:textAppearance">@style/TextAppearance.Material3.LabelMedium</item>
+        <item name="minWidth">24dp</item>
+    </style>
+
+    <style name="Tag.Small" parent="Tag">
+        <item name="shapeAppearance">@style/Tag.Small.ShapeAppearance</item>
+        <item name="android:textAppearance">@style/TextAppearance.Material3.LabelSmall</item>
     </style>
 
     <style name="Tag.More" parent="Tag.End">
@@ -25,6 +52,22 @@
         <item name="shapeAppearance">@style/Tag.End.ShapeAppearance</item>
     </style>
 
+    <style name="Tag.Small.Start" parent="Tag.Small">
+        <item name="shapeAppearance">@style/Tag.Small.Start.ShapeAppearance</item>
+    </style>
+
+    <style name="Tag.Small.Intermediate" parent="Tag.Small">
+        <item name="shapeAppearance">@style/Tag.Small.Intermediate.ShapeAppearance</item>
+    </style>
+
+    <style name="Tag.Small.End" parent="Tag.Small">
+        <item name="shapeAppearance">@style/Tag.Small.End.ShapeAppearance</item>
+    </style>
+
+    <style name="Tag.ShapeAppearance" parent="ShapeAppearance.Material3.LargeComponent"/>
+
+    <style name="Tag.Small.ShapeAppearance" parent="Tag.ShapeAppearance"/>
+
     <style name="Tag.Start.ShapeAppearance" parent="ShapeAppearance.Material3.LargeComponent">
         <item name="cornerSizeTopRight">4dp</item>
         <item name="cornerSizeBottomRight">4dp</item>
@@ -33,6 +76,18 @@
     <style name="Tag.Intermediate.ShapeAppearance" parent="ShapeAppearance.Material3.Corner.ExtraSmall"/>
 
     <style name="Tag.End.ShapeAppearance" parent="ShapeAppearance.Material3.LargeComponent">
+        <item name="cornerSizeTopLeft">4dp</item>
+        <item name="cornerSizeBottomLeft">4dp</item>
+    </style>
+
+    <style name="Tag.Small.Start.ShapeAppearance" parent="ShapeAppearance.Material3.LargeComponent">
+        <item name="cornerSizeTopRight">4dp</item>
+        <item name="cornerSizeBottomRight">4dp</item>
+    </style>
+
+    <style name="Tag.Small.Intermediate.ShapeAppearance" parent="ShapeAppearance.Material3.Corner.ExtraSmall"/>
+
+    <style name="Tag.Small.End.ShapeAppearance" parent="ShapeAppearance.Material3.LargeComponent">
         <item name="cornerSizeTopLeft">4dp</item>
         <item name="cornerSizeBottomLeft">4dp</item>
     </style>

@@ -36,15 +36,13 @@
         app:constraint_referenced_ids="stop_name_view,close_button" />
 
     <com.google.android.material.card.MaterialCardView
-        style="@style/Widget.Material3.CardView.Filled"
+        style="?attr/materialCardViewFilledStyle"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginTop="16dp"
         android:transitionName="expand_stop_transition"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/barrier"
-        app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.ExtraLarge"
-        app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.ExtraLarge"
         tools:context=".StopFragment">
 
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -56,12 +54,12 @@
                 android:id="@+id/tab_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
                 android:background="?attr/colorSurfaceContainerHighest"
                 app:layout_constraintTop_toTopOf="parent"
                 app:tabIndicator="@drawable/tab_indicator"
                 app:tabIndicatorFullWidth="true"
                 app:tabIndicatorGravity="stretch"
-                android:layout_marginTop="16dp"
                 app:tabMode="auto"
                 app:tabSelectedTextColor="?attr/colorOnPrimary"
                 app:tabTextColor="?attr/colorOnSurface" />
@@ -70,6 +68,7 @@
                 android:id="@+id/line_view_pager"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
+                android:layout_margin="16dp"
                 android:orientation="horizontal"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/tab_layout" />

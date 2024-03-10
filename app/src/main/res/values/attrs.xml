@@ -18,5 +18,7 @@
 
         <attr name="shapeAppearance"/>
         <attr name="shapeAppearanceOverlay"/>
+
+        <attr name="android:textAppearance"/>
     </declare-styleable>
 </resources>

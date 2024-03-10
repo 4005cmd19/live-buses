@@ -1,12 +1,10 @@
 package com.cmd.myapplication
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
-import android.view.MotionEvent
 import android.view.View
-import android.view.ViewConfiguration
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.view.doOnPreDraw
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -26,8 +24,6 @@ import com.cmd.myapplication.utils.adapters.BusStopListAdapter
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.motion.MotionUtils
 import com.google.android.material.transition.MaterialFade
-import kotlin.math.abs
-import kotlin.math.sign
 
 /**
  * A simple [Fragment] subclass.
@@ -88,15 +84,8 @@ class BusListFragment : Fragment(R.layout.fragment_bus_list) {
 
         val layoutManager = busStopsListView.layoutManager as ListViewLayoutManager
         layoutManager.canScrollVertically = false
-//        container.isNestedScrollingEnabled = false
 
-//        handleScroll()
-
-        sharedViewModel.isBottomSheetDraggable.value = true
-        sharedViewModel.isBottomSheetScrollable.observe(viewLifecycleOwner) {
-            Log.e(TAG, "isScrollable - $it")
-            container.isScrollable = true//it
-        }
+        handleCloseGesture()
 
         nearbyBusesViewModel.nearbyBusStops.observe(viewLifecycleOwner) {
             val busData = it.map {
@@ -111,6 +100,7 @@ class BusListFragment : Fragment(R.layout.fragment_bus_list) {
                     line?.id ?: "",
                     line?.displayName ?: "",
                     it.displayName,
+                    route?.destinationName ?: "",
                     route?.destinationName ?: "",
                     "Now"
                 )
@@ -145,6 +135,20 @@ class BusListFragment : Fragment(R.layout.fragment_bus_list) {
         busStopListAdapter.setOnExpandListener { itemView, _, data ->
             navigateToStopFragmentAnimated(itemView, data.id, null)
         }
+
+        sharedViewModel.isBottomSheetDraggable.value = true
+        sharedViewModel.isMainBackPressedCallbackEnabled.value = true
+        sharedViewModel.isInSearchMode.value = false
+
+        sharedViewModel.bottomSheetState.observe(viewLifecycleOwner) {
+            if (it != BottomSheetBehavior.STATE_EXPANDED) {
+                container.isScrollable = false
+                container.scrollY = 0
+            } else {
+                Log.e(TAG, "isScrollable - true")
+                container.isScrollable = true
+            }
+        }
     }
 
     private fun navigateToStopFragmentAnimated(view: View, stopId: String, lineId: String?) {
@@ -154,10 +158,8 @@ class BusListFragment : Fragment(R.layout.fragment_bus_list) {
         if (sharedViewModel.bottomSheetOffset.value != 1f) {
             sharedViewModel.bottomSheetOffset.observe(viewLifecycleOwner, object : Observer<Float> {
                 override fun onChanged(value: Float) {
-                    Log.e("NAV", "value - $value")
                     if (value == 1f) {
                         sharedViewModel.bottomSheetOffset.removeObserver(this)
-                        Log.e("NAV", "postponed")
                         navigateToStopFragment(view, stopId, lineId)
                     }
                 }
@@ -177,69 +179,32 @@ class BusListFragment : Fragment(R.layout.fragment_bus_list) {
         )
     }
 
-    private fun disableTouch() {
-//        container.requestDisallowInterceptTouchEvent(true)
-//        container.isScrollable = false
-    }
+    private fun handleCloseGesture() {
+        var overscrollCount = 0
+        var shouldShowToast = true
 
-    private fun enableTouch() {
-//        container.requestDisallowInterceptTouchEvent(false)
-//        container.isScrollable = true
-    }
+        container.setOnOverScrolledListener { scrollX, scrollY, clampedX, clampedY ->
+            if (clampedY && scrollY == 0) {
+                overscrollCount++
 
-    @SuppressLint("ClickableViewAccessibility")
-    private fun handleScroll() {
-//        requireView().setOnTouchListener { view, motionEvent -> false }
-//        busStopsListView.setOnTouchListener { _, _ -> false }
-//        busStopsListView.requestDisallowInterceptTouchEvent(true)
-//        compactBusListView.setOnTouchListener { _, _ -> false }
-//        compactBusListView.requestDisallowInterceptTouchEvent(true)
+                if (overscrollCount == 2 && shouldShowToast) {
+                    Toast.makeText(context,
+                        getString(R.string.close_bottom_sheet_hint), Toast.LENGTH_SHORT).apply {
+                        addCallback(object : Toast.Callback() {
+                            override fun onToastHidden() {
+                                super.onToastHidden()
 
-        container.setOnScrollChangeListener { v, scrollX, scrollY, oldScrollX, oldScrollY ->
-            if (scrollY == 0 && container.isNestedScrollingEnabled) {
-                container.isNestedScrollingEnabled = false
-                sharedViewModel.isBottomSheetDraggable.value = true
-                disableTouch()
-            }
-        }
+                                shouldShowToast = true
+                                overscrollCount = 0
+                            }
+                        })
+                    }.show()
 
-        var oldY: Float? = null
-
-        // min dY for it to be considered a scroll attempt
-        val touchSlop = ViewConfiguration.get(requireContext()).scaledTouchSlop
-
-        // always return false as to not consume the event
-        container.setOnTouchListener { view, touchEvent ->
-            Log.e(TAG, "onTouch")
-            if (touchEvent.action == MotionEvent.ACTION_UP) {
-                oldY = null
-            }
-
-            if (touchEvent.action == MotionEvent.ACTION_MOVE) {
-                // on first touch
-                if (oldY == null) {
-                    oldY = touchEvent.y
-
-                    return@setOnTouchListener false
+                    shouldShowToast = false
                 }
-
-                val dY = touchEvent.y - oldY!!
-
-                if (abs(dY) >= touchSlop) {
-                    val scrollDirection = -sign(dY)
-
-                    if (scrollDirection > 0 && !container.isNestedScrollingEnabled) {
-                        Log.e(TAG, "unlocked - dY=$dY sD=$scrollDirection")
-                        sharedViewModel.isBottomSheetDraggable.value = false
-                        container.isNestedScrollingEnabled = true
-                        enableTouch()
-                    }
-
-                    oldY = touchEvent.y
-                }
+            } else if (scrollY > 0) {
+                overscrollCount = 0
             }
-
-            return@setOnTouchListener false
         }
     }
 
